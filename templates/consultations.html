@@ -1,0 +1,328 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="consultations">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultations — Evaryahealth Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Consultations</h1>
+      <p>Manage all patient consultations</p>
+    </div>
+    <div class="top-actions">
+      <div class="search-box">🔍<input type="text" placeholder="Search consultations…" oninput="filterConsultations(this.value)" id="consult-search"></div>
+      <button class="btn-secondary" onclick="loadConsultations()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <div class="card fade-in-2">
+    <div class="card-header">
+      <div class="filter-tabs" id="consult-tabs">
+        <button class="filter-tab active" onclick="setConsultFilter('all',this)">All</button>
+        <button class="filter-tab" onclick="setConsultFilter('pending',this)">Pending</button>
+        <button class="filter-tab" onclick="setConsultFilter('active',this)">Active</button>
+        <button class="filter-tab" onclick="setConsultFilter('completed',this)">Completed</button>
+      </div>
+      <span id="consult-count" style="font-size:.77rem;color:var(--muted);font-weight:600;"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#ID</th><th>Patient</th><th>Doctor</th><th>Symptoms</th>
+            <th>Category</th><th>Status</th><th>Date</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="consult-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Consultation Detail Modal -->
+<div class="modal-overlay" id="consult-modal">
+  <div class="modal-box" style="max-width:680px;padding:0;border-radius:22px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,var(--teal-dark),var(--emerald));padding:22px 28px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h3 style="color:#fff;font-size:1.1rem;font-weight:700;margin-bottom:3px;font-family:'DM Serif Display',serif;">📋 Consultation Details</h3>
+        <p id="c-modal-sub" style="color:rgba(255,255,255,.7);font-size:.79rem;margin:0;"></p>
+      </div>
+      <button onclick="closeModal('consult-modal')" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;display:grid;place-items:center;transition:background .18s;" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">✕</button>
+    </div>
+    <div style="padding:24px 28px;max-height:72vh;overflow-y:auto;">
+
+      <!-- Info grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px;font-size:.83rem;">
+        <div style="padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border);border-right:1px solid var(--border);">
+          <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;">Patient</div>
+          <div id="cm-patient" style="font-weight:700;color:var(--navy);"></div>
+        </div>
+        <div style="padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border);">
+          <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;">Age / Gender</div>
+          <div id="cm-age" style="font-weight:600;color:var(--navy);"></div>
+        </div>
+        <div style="padding:13px 16px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);">
+          <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;">Phone</div>
+          <div id="cm-phone" style="color:var(--navy);"></div>
+        </div>
+        <div style="padding:13px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;">Category / Status</div>
+          <div id="cm-status" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px;"></div>
+        </div>
+        <div style="padding:13px 16px;border-right:1px solid var(--border);">
+          <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;">Date</div>
+          <div id="cm-date" style="color:var(--navy);"></div>
+        </div>
+        <div style="padding:13px 16px;">
+          <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;">Specialization</div>
+          <div id="cm-spec" style="color:var(--teal-dark);font-weight:700;"></div>
+        </div>
+      </div>
+
+      <!-- Doctor card -->
+      <div style="border:1.5px solid #5DCAA5;border-radius:14px;padding:16px 20px;margin-bottom:20px;background:linear-gradient(135deg,#F0FDF9,#E8FDF5);display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:54px;height:54px;border-radius:15px;background:linear-gradient(135deg,var(--teal),var(--emerald));display:grid;place-items:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 14px rgba(13,148,136,.3);">👨‍⚕️</div>
+          <div>
+            <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#0F6E56;margin-bottom:3px;">Attending Doctor</div>
+            <div id="cm-doctor-name" style="font-weight:700;font-size:.95rem;color:var(--navy);margin-bottom:3px;"></div>
+            <div id="cm-doctor-meta" style="font-size:.77rem;color:#1D9E75;"></div>
+          </div>
+        </div>
+        <button onclick="openPrescriptionModal()" style="padding:9px 20px;border-radius:10px;background:var(--teal-dark);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:.79rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px rgba(13,148,136,.3);transition:opacity .18s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📄 View Prescription</button>
+      </div>
+
+      <!-- Symptoms -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:8px;">Symptoms Reported</div>
+        <div id="cm-symptoms" style="background:var(--bg);border-radius:11px;padding:14px 16px;font-size:.84rem;line-height:1.75;color:var(--navy);border-left:3px solid var(--teal);"></div>
+      </div>
+
+      <!-- Remedies -->
+      <div id="cm-remedies-wrap">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:8px;">Home Remedies Given</div>
+        <div id="cm-remedies" class="remedy-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:16px 28px;border-top:1px solid var(--border);margin-top:0;">
+      <button class="btn-secondary" onclick="closeModal('consult-modal')">Close</button>
+      <button class="btn-primary" id="c-complete-btn">✔ Mark Completed</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prescription Modal -->
+<div class="modal-overlay" id="prescription-modal">
+  <div class="modal-box" style="max-width:660px;padding:0;border-radius:22px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,var(--navy),var(--slate));padding:22px 28px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h3 style="color:#fff;font-size:1.1rem;font-weight:700;margin-bottom:3px;font-family:'DM Serif Display',serif;">📄 Full Prescription</h3>
+        <p id="rx-modal-sub" style="color:rgba(255,255,255,.55);font-size:.79rem;margin:0;"></p>
+      </div>
+      <button onclick="closeModal('prescription-modal')" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;display:grid;place-items:center;transition:background .18s;" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">✕</button>
+    </div>
+    <div style="padding:24px 28px;max-height:74vh;overflow-y:auto;">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;background:var(--bg2);border-radius:13px;padding:14px 18px;margin-bottom:20px;border:1px solid var(--border);">
+        <div style="flex:1;min-width:120px;"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Doctor</div><div id="rx-doctor" style="font-weight:700;font-size:.88rem;color:var(--navy);"></div></div>
+        <div style="flex:1;min-width:120px;"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Specialization</div><div id="rx-spec" style="font-weight:700;color:var(--teal-dark);font-size:.88rem;"></div></div>
+        <div style="flex:1;min-width:120px;"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Patient</div><div id="rx-patient" style="font-weight:600;color:var(--navy);font-size:.88rem;"></div></div>
+        <div style="flex:1;min-width:120px;"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Date</div><div id="rx-date" style="color:var(--muted);font-size:.8rem;"></div></div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;">🩺 Diagnosis / Symptoms</div>
+        <div id="rx-symptoms" style="background:var(--bg);border-radius:11px;padding:13px 16px;font-size:.84rem;line-height:1.75;border-left:3px solid var(--teal);"></div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;">💊 Medicines Prescribed</div>
+        <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+            <thead><tr style="background:var(--bg2);">
+              <th style="padding:10px 14px;text-align:left;font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Medicine</th>
+              <th style="padding:10px 14px;text-align:left;font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Dosage</th>
+              <th style="padding:10px 14px;text-align:left;font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Frequency</th>
+              <th style="padding:10px 14px;text-align:left;font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Duration</th>
+            </tr></thead>
+            <tbody id="rx-medicines-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;">📝 Doctor's Instructions</div>
+        <div id="rx-instructions" style="background:var(--amber-light);border-radius:11px;padding:13px 16px;font-size:.84rem;line-height:1.75;color:#92400E;border:1px solid #FDE68A;"></div>
+      </div>
+      <div id="rx-remedies-section">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;">🌿 Home Remedies</div>
+        <div id="rx-remedies" class="remedy-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:14px 28px;border-top:1px solid var(--border);margin-top:0;">
+      <button class="btn-secondary" onclick="closeModal('prescription-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = null;
+let allConsultations = [], consultFilter = 'all', currentConsultId = null;
+
+const DEMO_CONSULTATIONS = [
+  { id:1, patient_name:'Priya Reddy', age:28, gender:'female', phone:'+91-9876501234', doctor_name:'Dr. Ananya Krishnan', specialization:'General Physician', symptoms:'Fever 102°F, sore throat, body ache since 2 days', category:'normal', status:'completed', home_remedies:'🍯 Honey ginger tea\n🛌 Rest well\n💧 Stay hydrated', created_at:'2025-03-02 10:30:00' },
+  { id:2, patient_name:'Arjun Mehta', age:45, gender:'male', phone:'+91-9876502345', doctor_name:'Dr. Vikram Nair', specialization:'Emergency Medicine', symptoms:'Chest pain and difficulty breathing for 30 mins', category:'emergency', status:'active', home_remedies:'❗ Emergency — go to ER immediately', created_at:'2025-03-03 08:15:00' },
+  { id:3, patient_name:'Sunita Rao', age:35, gender:'female', phone:'+91-9876503456', doctor_name:'Dr. Priya Sharma', specialization:'Pulmonologist', symptoms:'Persistent dry cough for 5 days, mild fever', category:'normal', status:'pending', home_remedies:'🌿 Tulsi tea\n💨 Steam inhalation\n🍯 Honey', created_at:'2025-03-03 09:45:00' },
+  { id:4, patient_name:'Rajiv Kumar', age:62, gender:'male', phone:'+91-9876504567', doctor_name:'Dr. Rajesh Patel', specialization:'Cardiologist', symptoms:'High BP, dizziness, severe headache, vision blurred', category:'emergency', status:'completed', home_remedies:'❗ Emergency care needed', created_at:'2025-03-01 14:20:00' },
+  { id:5, patient_name:'Meena Iyer', age:22, gender:'female', phone:'+91-9876505678', doctor_name:'Dr. Ananya Krishnan', specialization:'General Physician', symptoms:'Stomach pain, nausea, no appetite since morning', category:'normal', status:'completed', home_remedies:'🫚 Ginger tea\n🌿 Ajwain water\n🍌 BRAT diet', created_at:'2025-03-02 16:00:00' },
+  { id:6, patient_name:'Karan Singh', age:30, gender:'male', phone:'+91-9876506789', doctor_name:'Dr. Priya Sharma', specialization:'Pulmonologist', symptoms:'Wheezing and shortness of breath', category:'normal', status:'completed', home_remedies:'💨 Nebulization\n🍯 Honey water', created_at:'2025-03-04 11:00:00' },
+  { id:7, patient_name:'Lakshmi Nair', age:55, gender:'female', phone:'+91-9876507890', doctor_name:'Dr. Rajesh Patel', specialization:'Cardiologist', symptoms:'Palpitations and dizziness for 2 hours', category:'emergency', status:'active', home_remedies:'❗ Seek emergency care', created_at:'2025-03-04 13:30:00' },
+];
+
+const DEMO_DOCTORS = [
+  { id:1, name:'Dr. Ananya Krishnan', specialization:'General Physician', rating:4.8, experience_years:12 },
+  { id:2, name:'Dr. Rajesh Patel', specialization:'Cardiologist', rating:4.9, experience_years:18 },
+  { id:3, name:'Dr. Priya Sharma', specialization:'Pulmonologist', rating:4.7, experience_years:10 },
+  { id:4, name:'Dr. Vikram Nair', specialization:'Emergency Medicine', rating:4.9, experience_years:15 },
+];
+
+const PRESCRIPTION_DATA = {
+  1:{ medicines:[{name:'Paracetamol 500mg',dosage:'1 tab',frequency:'3x/day',duration:'5 days'},{name:'Azithromycin 250mg',dosage:'1 tab',frequency:'1x/day',duration:'3 days'}], instructions:'Take medicines after food. Drink warm fluids. Return if fever persists beyond 48 hrs.' },
+  2:{ medicines:[{name:'Aspirin 325mg',dosage:'1 tab',frequency:'Stat',duration:'Single dose'},{name:'Nitroglycerin',dosage:'0.4mg sublingual',frequency:'Every 5 min',duration:'Max 3 doses'}], instructions:'Call emergency services immediately. Do not exert.' },
+  4:{ medicines:[{name:'Amlodipine 5mg',dosage:'1 tab',frequency:'1x/day',duration:'Ongoing'},{name:'Metoprolol 25mg',dosage:'1 tab',frequency:'2x/day',duration:'Ongoing'}], instructions:'Monitor BP every 4 hours. Bed rest. Low-salt diet.' },
+};
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', function(e) { if(e.target===this) this.classList.remove('open'); }));
+
+function formatTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadConsultations() {
+  let data = DEMO_CONSULTATIONS;
+  try { const r=await API ? fetch(API+'?action=get_consultations') : Promise.reject(); const d=await r.json(); if(d.success) data=d.data; } catch(e) {}
+  allConsultations = data;
+  renderConsultations(data);
+}
+
+function renderConsultations(data) {
+  const filtered = consultFilter==='all' ? data : data.filter(c => c.status===consultFilter);
+  document.getElementById('consult-count').textContent = filtered.length + ' record(s)';
+  const tbody = document.getElementById('consult-tbody');
+  tbody.innerHTML = '';
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📋</div><h4>No consultations found</h4><p>Try adjusting the filter or search term.</p></div></td></tr>`;
+    return;
+  }
+  filtered.forEach(c => {
+    const shortSym = (c.symptoms||'').substring(0,46) + ((c.symptoms||'').length>46?'…':'');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;color:var(--muted);font-size:.74rem;">#${c.id}</td>
+      <td><strong style="font-size:.83rem;">${c.patient_name||'—'}</strong><br><span style="font-size:.73rem;color:var(--muted);">${c.age?c.age+'y · ':''}${c.gender||''}</span></td>
+      <td><span style="font-size:.83rem;">${c.doctor_name||'—'}</span><br><span style="font-size:.73rem;color:var(--muted);">${c.specialization||''}</span></td>
+      <td style="font-size:.79rem;max-width:190px;color:var(--slate2);">${shortSym}</td>
+      <td><span class="badge badge-${c.category}">${c.category==='emergency'?'🚨 Emergency':'✅ Normal'}</span></td>
+      <td><span class="badge badge-${c.status}">${c.status}</span></td>
+      <td style="font-size:.75rem;color:var(--muted);white-space:nowrap;">${formatTime(c.created_at)}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn-sm" onclick="viewConsultation(${c.id})" style="margin-right:4px;">View</button>
+        ${c.status!=='completed'?`<button class="btn-sm" onclick="completeConsult(${c.id})" style="color:var(--teal);border-color:var(--teal);">Complete</button>`:''}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function setConsultFilter(f, el) {
+  consultFilter = f;
+  document.querySelectorAll('#consult-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderConsultations(allConsultations);
+}
+
+function filterConsultations(query) {
+  const q = query.toLowerCase();
+  renderConsultations(allConsultations.filter(c =>
+    (c.patient_name||'').toLowerCase().includes(q) ||
+    (c.doctor_name||'').toLowerCase().includes(q) ||
+    (c.symptoms||'').toLowerCase().includes(q)
+  ));
+}
+
+function viewConsultation(id) {
+  const c = allConsultations.find(x => x.id===id); if (!c) return;
+  currentConsultId = id;
+  const doc = DEMO_DOCTORS.find(d => d.name===c.doctor_name) || {};
+  document.getElementById('c-modal-sub').textContent = `Consultation #${c.id} · ${formatTime(c.created_at)}`;
+  document.getElementById('cm-patient').textContent  = c.patient_name||'—';
+  document.getElementById('cm-age').textContent      = `${c.age||'—'} yrs · ${c.gender||'—'}`;
+  document.getElementById('cm-phone').textContent    = c.phone||'—';
+  document.getElementById('cm-date').textContent     = formatTime(c.created_at);
+  document.getElementById('cm-spec').textContent     = c.specialization||'—';
+  document.getElementById('cm-status').innerHTML =
+    `<span class="badge badge-${c.category}">${c.category==='emergency'?'🚨 Emergency':'✅ Normal'}</span>
+     <span class="badge badge-${c.status}">${c.status}</span>`;
+  document.getElementById('cm-doctor-name').textContent = c.doctor_name||'—';
+  document.getElementById('cm-doctor-meta').textContent = `${doc.specialization||c.specialization||''} · ⭐ ${doc.rating||'—'} · ${doc.experience_years||'—'} yrs exp`;
+  document.getElementById('cm-symptoms').textContent = c.symptoms||'—';
+  const remedies = (c.home_remedies||'').split('\n').filter(r=>r.trim());
+  const remWrap = document.getElementById('cm-remedies-wrap');
+  if (remedies.length) {
+    remWrap.style.display = 'block';
+    document.getElementById('cm-remedies').innerHTML = remedies.map(r=>`<div style="margin-bottom:2px;">${r}</div>`).join('');
+  } else { remWrap.style.display = 'none'; }
+  document.getElementById('c-complete-btn').onclick = () => completeConsult(id);
+  document.getElementById('c-complete-btn').style.display = c.status==='completed'?'none':'';
+  document.getElementById('consult-modal').classList.add('open');
+}
+
+function openPrescriptionModal() {
+  const c = allConsultations.find(x => x.id===currentConsultId); if (!c) return;
+  const rx = PRESCRIPTION_DATA[c.id] || { medicines:[], instructions:'No specific instructions.' };
+  document.getElementById('rx-modal-sub').textContent = `Prescription #${c.id} — ${formatTime(c.created_at)}`;
+  document.getElementById('rx-doctor').textContent   = c.doctor_name||'—';
+  document.getElementById('rx-spec').textContent     = c.specialization||'—';
+  document.getElementById('rx-patient').textContent  = `${c.patient_name||'—'} (${c.age||'—'}y, ${c.gender||'—'})`;
+  document.getElementById('rx-date').textContent     = formatTime(c.created_at);
+  document.getElementById('rx-symptoms').textContent = c.symptoms||'—';
+  document.getElementById('rx-instructions').textContent = rx.instructions;
+  const tbody = document.getElementById('rx-medicines-tbody');
+  tbody.innerHTML = '';
+  if (!rx.medicines.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--muted);font-size:.8rem;font-style:italic;">No medicines prescribed</td></tr>';
+  } else {
+    rx.medicines.forEach((m,i) => {
+      const tr = document.createElement('tr');
+      tr.style.background = i%2===0?'#fff':'var(--bg2)';
+      tr.innerHTML = `<td style="padding:10px 14px;font-weight:600;color:var(--navy);">${m.name}</td><td style="padding:10px 14px;color:var(--muted);">${m.dosage}</td><td style="padding:10px 14px;color:var(--muted);">${m.frequency}</td><td style="padding:10px 14px;color:var(--muted);">${m.duration}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  const remedies = (c.home_remedies||'').split('\n').filter(r=>r.trim());
+  const rxRemSec = document.getElementById('rx-remedies-section');
+  if (remedies.length) {
+    rxRemSec.style.display='block';
+    document.getElementById('rx-remedies').innerHTML = remedies.map(r=>`<div style="margin-bottom:2px;">${r}</div>`).join('');
+  } else { rxRemSec.style.display='none'; }
+  document.getElementById('prescription-modal').classList.add('open');
+}
+
+async function completeConsult(id) {
+  try { await fetch(API+'?action=update_consultation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'completed',notes:''})}); } catch(e) {}
+  const c = allConsultations.find(x => x.id===id); if(c) c.status='completed';
+  renderConsultations(allConsultations);
+  closeModal('consult-modal');
+}
+
+loadConsultations();
+</script>
+</body>
+</html>

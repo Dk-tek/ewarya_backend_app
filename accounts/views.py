@@ -65,7 +65,38 @@ class UsernamePasswordLoginView(APIView):
     def post(self, request):
         serializer = UsernamePasswordLoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        user_data = serializer.validated_data['user']
+        if not serializer.validated_data['raw_user'].is_staff:
+            return Response(
+                {'detail': 'Only staff/admin users can access this console.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        response_data = {
+            key: value
+            for key, value in serializer.validated_data.items()
+            if key != 'raw_user'
+        }
+        response_data['user'] = user_data
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class SessionTokenView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Only staff/admin users can access this console.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return Response(
+            {
+                'message': 'Session authenticated.',
+                'user': BasicInformationSerializer(request.user).data,
+                'tokens': UsernamePasswordLoginSerializer.get_tokens(request.user),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class PhoneOTPLoginView(APIView):

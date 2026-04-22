@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="hc-auth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login & Register — Evarya Health Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<style>
+  .hc-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+  @media(max-width:860px){ .hc-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Admin Login &amp; Register</h1>
+      <p>Create or login with staff console accounts for triage and family data management.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-secondary" id="loadEverything">🔄 Refresh data</button>
+      <button class="btn-primary" id="sampleFlow">✨ Create sample triage flow</button>
+    </div>
+  </div>
+
+  <div id="status" class="hc-status fade-in" style="margin-bottom:18px;">Ready.</div>
+
+  <div class="hc-grid fade-in-2">
+    <!-- Register -->
+    <form class="hc-card" id="registerForm">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Authentication</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Create Admin Account</h3>
+      </div>
+      <div class="hc-form-grid">
+        <label class="hc-label">Username<input name="username" required value="demo_user" placeholder="Enter username"></label>
+        <label class="hc-label">Password<input name="password" type="password" required value="secret123" placeholder="Enter password"></label>
+        <label class="hc-label">Phone Number<input name="phone_number" required value="+919876543210" placeholder="+91XXXXXXXXXX"></label>
+        <label class="hc-label">Email<input name="email" type="email" value="demo@example.com" placeholder="user@email.com"></label>
+      </div>
+      <button class="btn-hc" style="width:100%;">Create Admin</button>
+    </form>
+
+    <!-- Login -->
+    <form class="hc-card" id="loginForm">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Authentication</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Login with Password</h3>
+      </div>
+      <div class="hc-form-grid">
+        <label class="hc-label">Username<input name="username" required value="demo_user" placeholder="Enter username"></label>
+        <label class="hc-label">Password<input name="password" type="password" required value="secret123" placeholder="Enter password"></label>
+      </div>
+      <button class="btn-hc" style="width:100%;">Login</button>
+    </form>
+
+    <!-- OTP Request -->
+    <form class="hc-card" id="otpRequestForm">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">One-Time Password</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Request OTP</h3>
+      </div>
+      <div class="hc-form-grid">
+        <label class="hc-label full">Phone Number<input name="phone_number" required value="+919876543210" placeholder="+91XXXXXXXXXX"></label>
+      </div>
+      <button class="btn-hc" style="width:100%;">Request OTP</button>
+    </form>
+
+    <!-- OTP Login -->
+    <form class="hc-card" id="otpLoginForm">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">One-Time Password</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Register or Login with OTP</h3>
+      </div>
+      <div class="hc-form-grid">
+        <label class="hc-label">Phone Number<input name="phone_number" required value="+919876543210" placeholder="+91XXXXXXXXXX"></label>
+        <label class="hc-label">OTP Code<input name="otp" required value="7305" placeholder="Enter OTP"></label>
+      </div>
+      <div class="hc-row">
+        <button class="btn-hc" data-otp-action="register" style="flex:1;">Register Phone</button>
+        <button class="btn-hc secondary" data-otp-action="login" style="flex:1;">Login with OTP</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="{% static 'js/hc-core.js' %}"></script>
+<script>
+  document.getElementById('registerForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const data = await request('/api/auth/register/', { method:'POST', body: JSON.stringify(compactPayload(formData(event.target))) });
+      state.user = data.user; setTokens(data.tokens); setStatus('Admin account created and logged in.'); await loadEverything();
+    } catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const data = await request('/api/auth/login/password/', { method:'POST', body: JSON.stringify(compactPayload(formData(event.target))) });
+      state.user = data.user; setTokens(data.tokens); setStatus('Logged in.'); await loadEverything();
+    } catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('otpRequestForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const data = await request('/api/auth/request-otp/', { method:'POST', body: JSON.stringify(compactPayload(formData(event.target))) });
+      document.getElementById('otpLoginForm').otp.value = data.otp || '7305';
+      setStatus('OTP requested.');
+    } catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('otpLoginForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const action = event.submitter?.dataset.otpAction || 'login';
+    const path = action === 'register' ? '/api/auth/register-phone/' : '/api/auth/login/otp/';
+    try {
+      const data = await request(path, { method:'POST', body: JSON.stringify(compactPayload(formData(event.target))) });
+      state.user = data.user; setTokens(data.tokens);
+      setStatus(action === 'register' ? 'Phone account registered.' : 'Logged in with OTP.');
+      await loadEverything();
+    } catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('loadEverything').addEventListener('click', loadEverything);
+  document.getElementById('sampleFlow').addEventListener('click', () => createSampleFlow().catch(e => setStatus(e.message, true)));
+</script>
+</body>
+</html>

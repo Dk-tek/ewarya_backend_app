@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="hc-profile">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Evarya Health Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<style>
+  .hc-grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+  .profile-summary { display:grid; gap:14px; }
+  .profile-hero {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #f0fdf9, #f8fafc);
+  }
+  .profile-name {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--navy);
+  }
+  .profile-sub {
+    font-size: .8rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .profile-grid {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+  }
+  .profile-field {
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    background: #f8fafc;
+    padding: 12px 14px;
+  }
+  .profile-field-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .profile-field-value {
+    font-size: .84rem;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.45;
+    word-break: break-word;
+  }
+  .profile-empty {
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 24px 18px;
+    text-align: center;
+    color: var(--muted);
+    background: #fafafa;
+    font-size: .82rem;
+  }
+  @media(max-width:860px){
+    .hc-grid2,
+    .profile-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Profile</h1>
+      <p>View and update your account information.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-secondary" id="loadEverything">🔄 Refresh data</button>
+      <button class="btn-primary" id="sampleFlow">✨ Create sample triage flow</button>
+    </div>
+  </div>
+
+  <div id="status" class="hc-status fade-in" style="margin-bottom:18px;">Ready.</div>
+
+  <div class="hc-grid2 fade-in-2">
+    <form class="hc-card" id="profileForm">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Account Details</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Basic Information</h3>
+      </div>
+      <div class="hc-form-grid">
+        <label class="hc-label">Username<input name="username" required placeholder="username"></label>
+        <label class="hc-label">Email<input name="email" type="email" placeholder="user@email.com"></label>
+        <label class="hc-label">Phone Number<input name="phone_number" required placeholder="+91XXXXXXXXXX"></label>
+        <label class="hc-label">First Name<input name="first_name" placeholder="First name"></label>
+        <label class="hc-label">Last Name<input name="last_name" placeholder="Last name"></label>
+        <label class="hc-label">Age<input name="age" type="number" min="0" placeholder="Age"></label>
+        <label class="hc-label">Gender<input name="gender" placeholder="male / female / other"></label>
+        <label class="hc-label">Date of Birth<input name="date_of_birth" type="date"></label>
+        <label class="hc-label full">Address<textarea name="address" placeholder="Full address…"></textarea></label>
+      </div>
+      <div class="hc-row">
+        <button type="button" class="btn-hc secondary" id="getProfile" style="flex:1;">Get Profile</button>
+        <button class="btn-hc" style="flex:1;">Save Profile</button>
+      </div>
+    </form>
+
+    <div class="hc-card">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Live View</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Current Profile</h3>
+      </div>
+      <div class="profile-summary" id="profileSummary">
+        <div class="profile-empty">Load your profile to see a friendly summary here.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/hc-core.js' %}"></script>
+<script>
+  function escHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  window.renderProfileSummary = function(profile) {
+    const el = document.getElementById('profileSummary');
+    if (!el) return;
+    if (!profile) {
+      el.innerHTML = '<div class="profile-empty">Load your profile to see a friendly summary here.</div>';
+      return;
+    }
+
+    const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || profile.username || 'Unnamed User';
+    el.innerHTML = `
+      <div class="profile-hero">
+        <div class="profile-name">${escHtml(fullName)}</div>
+        <div class="profile-sub">${escHtml(profile.email || 'No email set')} · ${escHtml(profile.phone_number || 'No phone number')}</div>
+      </div>
+      <div class="profile-grid">
+        <div class="profile-field">
+          <div class="profile-field-label">Username</div>
+          <div class="profile-field-value">${escHtml(profile.username || '-')}</div>
+        </div>
+        <div class="profile-field">
+          <div class="profile-field-label">Profile Status</div>
+          <div class="profile-field-value">${profile.profile_completed ? 'Completed' : 'Incomplete'}</div>
+        </div>
+        <div class="profile-field">
+          <div class="profile-field-label">Age</div>
+          <div class="profile-field-value">${escHtml(profile.age || '-')}</div>
+        </div>
+        <div class="profile-field">
+          <div class="profile-field-label">Gender</div>
+          <div class="profile-field-value">${escHtml(profile.gender || '-')}</div>
+        </div>
+        <div class="profile-field">
+          <div class="profile-field-label">Date of Birth</div>
+          <div class="profile-field-value">${escHtml(profile.date_of_birth || '-')}</div>
+        </div>
+        <div class="profile-field">
+          <div class="profile-field-label">OTP Verified</div>
+          <div class="profile-field-value">${profile.otp_verified ? 'Yes' : 'No'}</div>
+        </div>
+        <div class="profile-field" style="grid-column:1 / -1;">
+          <div class="profile-field-label">Address</div>
+          <div class="profile-field-value">${escHtml(profile.address || 'No address saved')}</div>
+        </div>
+      </div>
+    `;
+  };
+
+  document.getElementById('getProfile').addEventListener('click', async () => {
+    try { await loadProfile(); setStatus('Profile loaded.'); } catch(e) { setStatus(e.message, true); }
+  });
+
+  document.getElementById('profileForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      const data = await request('/api/auth/basic-information/', { method:'PATCH', body: JSON.stringify(compactPayload(formData(event.target))) });
+      state.user = data.user;
+      window.renderProfileSummary(data.user);
+      setStatus('Profile saved.');
+    } catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('loadEverything').addEventListener('click', loadEverything);
+  document.getElementById('sampleFlow').addEventListener('click', () => createSampleFlow().catch(e => setStatus(e.message, true)));
+
+  if (state.access) loadProfile().catch(() => {});
+</script>
+</body>
+</html>

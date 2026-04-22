@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="analytics">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — Evaryahealth Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Analytics</h1>
+      <p>Platform performance overview</p>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px;" class="fade-in-2">
+    <div class="card">
+      <div class="card-header"><h3>📊 Consultations by Specialization</h3></div>
+      <div class="card-body"><div class="bar-chart" id="spec-chart"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>🏷️ Case Category Split</h3></div>
+      <div class="card-body" id="category-chart"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;" class="fade-in-3">
+    <div class="card">
+      <div class="card-header"><h3>📅 Weekly Trend</h3></div>
+      <div class="card-body" id="weekly-chart"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>👨‍⚕️ Doctor Workload</h3></div>
+      <div class="card-body" id="doctor-workload"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>⚡ Quick Stats</h3></div>
+      <div class="card-body" id="quick-stats"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const specs = [
+  { name:'General Physician', count:10 },
+  { name:'Emergency Medicine', count:5 },
+  { name:'Cardiologist', count:4 },
+  { name:'Pulmonologist', count:3 },
+  { name:'Neurologist', count:2 },
+];
+const max = Math.max(...specs.map(s=>s.count));
+const chart = document.getElementById('spec-chart');
+specs.forEach((s, i) => {
+  const row = document.createElement('div'); row.className='bar-row';
+  row.innerHTML=`<div class="bar-label">${s.name}</div>
+    <div class="bar-bg"><div class="bar-fill" style="width:0%" data-target="${(s.count/max)*100}"></div></div>
+    <div class="bar-count">${s.count}</div>`;
+  chart.appendChild(row);
+  setTimeout(() => {
+    row.querySelector('.bar-fill').style.width = ((s.count/max)*100) + '%';
+  }, 100 + i * 80);
+});
+
+document.getElementById('category-chart').innerHTML=`
+  <div style="display:flex;gap:24px;justify-content:center;align-items:center;height:160px;">
+    <div style="text-align:center;">
+      <div style="font-size:2.8rem;font-weight:800;color:var(--teal);font-family:'DM Serif Display',serif;line-height:1;">79%</div>
+      <div style="margin-top:8px;"><span class="badge badge-normal" style="font-size:.8rem;">✅ Normal Cases</span></div>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:6px;">19 consultations</div>
+    </div>
+    <div style="width:1px;height:80px;background:var(--border);"></div>
+    <div style="text-align:center;">
+      <div style="font-size:2.8rem;font-weight:800;color:var(--red);font-family:'DM Serif Display',serif;line-height:1;">21%</div>
+      <div style="margin-top:8px;"><span class="badge badge-emergency" style="font-size:.8rem;">🚨 Emergency</span></div>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:6px;">5 consultations</div>
+    </div>
+  </div>
+  <div style="margin-top:18px;background:var(--bg);border-radius:999px;height:12px;overflow:hidden;display:flex;gap:2px;">
+    <div style="width:79%;background:linear-gradient(90deg,var(--teal),var(--emerald));border-radius:999px 0 0 999px;"></div>
+    <div style="flex:1;background:linear-gradient(90deg,var(--red),#DC2626);border-radius:0 999px 999px 0;"></div>
+  </div>
+  <div style="text-align:center;margin-top:10px;font-size:.77rem;color:var(--muted);">Based on 24 total consultations</div>`;
+
+const weekly = [
+  {day:'Mon',count:2},{day:'Tue',count:5},{day:'Wed',count:3},
+  {day:'Thu',count:7},{day:'Fri',count:4},{day:'Sat',count:2},{day:'Sun',count:1},
+];
+const wMax = Math.max(...weekly.map(w=>w.count));
+document.getElementById('weekly-chart').innerHTML = `
+  <div style="display:flex;align-items:flex-end;gap:10px;height:120px;padding-bottom:4px;">
+    ${weekly.map(w => `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--navy);">${w.count}</div>
+        <div style="width:100%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--teal),var(--emerald));height:${(w.count/wMax)*90}px;min-height:6px;transition:height .6s ease;"></div>
+        <div style="font-size:.7rem;color:var(--muted);font-weight:600;">${w.day}</div>
+      </div>`).join('')}
+  </div>
+  <div style="text-align:center;font-size:.75rem;color:var(--muted);margin-top:10px;">Consultations this week</div>`;
+
+document.getElementById('doctor-workload').innerHTML = `
+  ${[{name:'Dr. Ananya Krishnan',cases:10,pct:83},{name:'Dr. Rajesh Patel',cases:6,pct:50},{name:'Dr. Vikram Nair',cases:5,pct:42},{name:'Dr. Priya Sharma',cases:3,pct:25}]
+    .map(d=>`<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:5px;">
+        <span style="font-weight:600;color:var(--navy);">${d.name}</span>
+        <span style="color:var(--muted);">${d.cases} cases</span>
+      </div>
+      <div class="bar-bg" style="height:8px;"><div class="bar-fill" style="width:${d.pct}%;"></div></div>
+    </div>`).join('')}`;
+
+document.getElementById('quick-stats').innerHTML = `
+  <div style="display:grid;gap:12px;">
+    ${[
+      {label:'Avg Response Time',val:'12 min',icon:'⏱️',color:'#3B82F6'},
+      {label:'Completion Rate',val:'79%',icon:'✅',color:'#10B981'},
+      {label:'Emergency Rate',val:'21%',icon:'🚨',color:'#EF4444'},
+      {label:'Patient Satisfaction',val:'4.8 / 5',icon:'⭐',color:'#F59E0B'},
+    ].map(s=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border);">
+        <div style="width:36px;height:36px;border-radius:10px;background:${s.color}18;display:grid;place-items:center;font-size:18px;flex-shrink:0;">${s.icon}</div>
+        <div>
+          <div style="font-size:.71rem;color:var(--muted);font-weight:600;letter-spacing:.03em;">${s.label}</div>
+          <div style="font-size:1rem;font-weight:800;color:var(--navy);font-family:'DM Serif Display',serif;">${s.val}</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="doctors">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doctors — Evaryahealth Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Doctors</h1>
+      <p>Manage your medical team</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-secondary" onclick="loadDoctors()">🔄 Refresh</button>
+      <button class="btn-primary" onclick="document.getElementById('add-doctor-modal').classList.add('open')">+ Add Doctor</button>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card fade-in-2" style="margin-bottom:22px;overflow:visible;">
+    <div class="card-header" style="flex-wrap:wrap;gap:10px;align-items:center;padding:14px 20px;">
+      <select id="doc-spec-filter" onchange="setDocFilter(this.value)" class="inline-select" style="min-width:190px;">
+        <option value="all">All Specializations</option>
+        <option>General Physician</option><option>Cardiologist</option>
+        <option>Pulmonologist</option><option>Emergency Medicine</option>
+        <option>Neurologist</option><option>Dermatologist</option>
+        <option>Pediatrician</option><option>Orthopedist</option>
+      </select>
+      <select id="doc-status-filter" onchange="applyDocFilters()" class="inline-select">
+        <option value="all">All Statuses</option>
+        <option value="available">Available</option>
+        <option value="busy">Busy</option>
+        <option value="offline">Offline</option>
+      </select>
+      <select id="avail-doctor-select" onchange="onAvailDocSelect(this.value)" class="inline-select avail-select" style="min-width:220px;">
+        <option value="">🟢 Available Doctors</option>
+      </select>
+      <span class="avail-count-pill" id="avail-doc-count">0 available</span>
+      <div class="search-box" style="margin-left:auto;">🔍
+        <input type="text" placeholder="Search doctor…" oninput="searchDoctors(this.value)" style="width:145px;">
+      </div>
+    </div>
+    <div id="avail-quick-info" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 20px;border-top:1px solid var(--border);background:#F0FDF9;"></div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <span id="doc-count" style="font-size:.79rem;color:var(--muted);font-weight:600;"></span>
+  </div>
+  <div class="doctor-grid fade-in-3" id="doctors-grid"></div>
+</div>
+
+<!-- Add Doctor Modal -->
+<div class="modal-overlay" id="add-doctor-modal">
+  <div class="modal-box" style="max-width:540px;">
+    <button class="modal-close" onclick="closeModal('add-doctor-modal')">✕</button>
+    <h3>👨‍⚕️ Add New Doctor</h3>
+    <p>Fill in the doctor's details to add them to the platform</p>
+
+    <div class="form-row-2" style="margin-bottom:16px;">
+      <div class="form-group">
+        <label>Full Name <span class="req">*</span></label>
+        <input id="d-name" placeholder="Dr. Jane Doe">
+      </div>
+      <div class="form-group">
+        <label>Specialization <span class="req">*</span></label>
+        <select id="d-spec">
+          <option>General Physician</option><option>Cardiologist</option>
+          <option>Pulmonologist</option><option>Emergency Medicine</option>
+          <option>Neurologist</option><option>Dermatologist</option>
+          <option>Pediatrician</option><option>Orthopedist</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row-2" style="margin-bottom:16px;">
+      <div class="form-group">
+        <label>Email <span class="req">*</span></label>
+        <input type="email" id="d-email" placeholder="doctor@evaryahealth.com">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input id="d-phone" placeholder="+91 XXXXX XXXXX">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:4px;">
+      <label>Years of Experience</label>
+      <input type="number" id="d-exp" placeholder="10" min="1">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('add-doctor-modal')">Cancel</button>
+      <button class="btn-primary" onclick="addDoctor()">Add Doctor</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = null;
+let allDoctors = [], docSpecFilter='all', docStatusFilter='all', docSearchQuery='', highlightedDoctorId=null;
+
+const DEMO_DOCTORS = [
+  { id:1, name:'Dr. Ananya Krishnan', specialization:'General Physician', email:'ananya@medconsult.com', phone:'+91-9876543210', status:'available', rating:4.8, experience_years:12 },
+  { id:2, name:'Dr. Rajesh Patel', specialization:'Cardiologist', email:'rajesh@medconsult.com', phone:'+91-9876543211', status:'available', rating:4.9, experience_years:18 },
+  { id:3, name:'Dr. Priya Sharma', specialization:'Pulmonologist', email:'priya@medconsult.com', phone:'+91-9876543212', status:'busy', rating:4.7, experience_years:10 },
+  { id:4, name:'Dr. Vikram Nair', specialization:'Emergency Medicine', email:'vikram@medconsult.com', phone:'+91-9876543213', status:'available', rating:4.9, experience_years:15 },
+  { id:5, name:'Dr. Meera Iyer', specialization:'General Physician', email:'meera@medconsult.com', phone:'+91-9876543214', status:'busy', rating:4.6, experience_years:8 },
+  { id:6, name:'Dr. Suresh Kumar', specialization:'Neurologist', email:'suresh@medconsult.com', phone:'+91-9876543215', status:'offline', rating:4.8, experience_years:20 },
+];
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+
+async function loadDoctors() {
+  let data = DEMO_DOCTORS;
+  try { const r=await API ? fetch(API+'?action=get_doctors') : Promise.reject(); const d=await r.json(); if(d.success) data=d.data; } catch(e) {}
+  allDoctors = data; highlightedDoctorId=null; docSpecFilter='all'; docStatusFilter='all'; docSearchQuery='';
+  document.getElementById('doc-spec-filter').value='all';
+  document.getElementById('doc-status-filter').value='all';
+  buildAvailableDropdown(); applyDocFilters();
+}
+
+function buildAvailableDropdown() {
+  const sel = document.getElementById('avail-doctor-select');
+  const available = allDoctors.filter(d => d.status==='available');
+  sel.innerHTML = '<option value="">🟢 Available Doctors</option>';
+  available.forEach(doc => {
+    const opt=document.createElement('option'); opt.value=doc.id;
+    opt.textContent=`${doc.name}  ·  ${doc.specialization}  (⭐ ${doc.rating})`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('avail-doc-count').textContent = available.length + ' available';
+  if (highlightedDoctorId) {
+    const still = available.find(d => d.id===highlightedDoctorId);
+    if (!still) { highlightedDoctorId=null; sel.value=''; clearAvailQuickInfo(); }
+    else sel.value=highlightedDoctorId;
+  }
+}
+
+function onAvailDocSelect(val) {
+  highlightedDoctorId = val ? parseInt(val) : null;
+  if (highlightedDoctorId) {
+    const doc = allDoctors.find(d => d.id===highlightedDoctorId);
+    if (doc) showAvailQuickInfo(doc);
+  } else clearAvailQuickInfo();
+  applyDocFilters();
+}
+
+function showAvailQuickInfo(doc) {
+  const el=document.getElementById('avail-quick-info'); el.style.display='flex';
+  el.innerHTML=`<span style="font-size:.72rem;font-weight:700;color:#0F6E56;margin-right:4px;">Selected:</span>
+    <div class="avail-info-chip">👨‍⚕️ <strong>${doc.name}</strong></div>
+    <div class="avail-info-chip">⭐ <strong>${doc.rating}</strong> rating</div>
+    <div class="avail-info-chip">🗓️ <strong>${doc.experience_years} yrs</strong> exp</div>
+    <div class="avail-info-chip">📧 <strong>${doc.email}</strong></div>
+    <div class="avail-info-chip">📞 <strong>${doc.phone||'N/A'}</strong></div>`;
+}
+
+function clearAvailQuickInfo() {
+  const el=document.getElementById('avail-quick-info'); el.style.display='none'; el.innerHTML='';
+}
+
+function setDocFilter(spec) { docSpecFilter=spec; applyDocFilters(); }
+function searchDoctors(q) { docSearchQuery=q.toLowerCase(); applyDocFilters(); }
+
+function applyDocFilters() {
+  docStatusFilter=document.getElementById('doc-status-filter').value;
+  let filtered=allDoctors;
+  if (docSpecFilter!=='all') filtered=filtered.filter(d=>d.specialization===docSpecFilter);
+  if (docStatusFilter!=='all') filtered=filtered.filter(d=>d.status===docStatusFilter);
+  if (docSearchQuery) filtered=filtered.filter(d=>d.name.toLowerCase().includes(docSearchQuery)||(d.email||'').toLowerCase().includes(docSearchQuery));
+  document.getElementById('doc-count').textContent=filtered.length+' doctor(s) found';
+  renderDoctors(filtered);
+}
+
+function renderDoctors(data) {
+  const grid=document.getElementById('doctors-grid'); grid.innerHTML='';
+  if (!data.length) {
+    grid.innerHTML=`<div style="grid-column:1/-1;"><div class="empty-state"><div class="empty-icon">👨‍⚕️</div><h4>No doctors match the filters</h4><p>Try adjusting the specialization or status filter.</p></div></div>`;
+    return;
+  }
+  data.forEach(doc => {
+    const isHL = highlightedDoctorId && doc.id===highlightedDoctorId;
+    const statusIcon = doc.status==='available'?'🟢':doc.status==='busy'?'🟡':'⚫';
+    const div=document.createElement('div');
+    div.className='doctor-card'+(isHL?' highlighted':'');
+    div.id='doc-card-'+doc.id;
+    div.innerHTML=`
+      ${isHL?'<div class="selected-tag">✔ Selected</div>':''}
+      <div class="doc-av">👨‍⚕️</div>
+      <div class="doc-card-name">${doc.name}</div>
+      <div class="doc-card-spec">${doc.specialization}</div>
+      <span class="badge badge-${doc.status}" style="margin-bottom:10px;">${statusIcon} ${doc.status==='available'?'Available':doc.status==='busy'?'Busy':'Offline'}</span>
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:4px;">⭐ ${doc.rating} · ${doc.experience_years} yrs experience</div>
+      <div style="font-size:.74rem;color:var(--muted);margin-bottom:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${doc.email}</div>
+      <div class="doc-card-actions">
+        ${doc.status!=='available'
+          ? `<button class="btn-sm" style="color:var(--teal);border-color:var(--teal);" onclick="updateDoctorStatus(${doc.id},'available')">Set Available</button>`
+          : `<button class="btn-sm" onclick="updateDoctorStatus(${doc.id},'offline')">Set Offline</button>`}
+        <button class="btn-danger" onclick="deleteDoctor(${doc.id})">Remove</button>
+      </div>`;
+    grid.appendChild(div);
+  });
+  if (highlightedDoctorId) {
+    const card=document.getElementById('doc-card-'+highlightedDoctorId);
+    if (card) card.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+}
+
+async function addDoctor() {
+  const payload = {
+    name: document.getElementById('d-name').value.trim(),
+    specialization: document.getElementById('d-spec').value,
+    email: document.getElementById('d-email').value.trim(),
+    phone: document.getElementById('d-phone').value.trim(),
+    experience_years: parseInt(document.getElementById('d-exp').value)||1,
+  };
+  if (!payload.name||!payload.email) { alert('Name and email are required'); return; }
+  try { await fetch(API+'?action=add_doctor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); } catch(e) {}
+  payload.id=Date.now(); payload.status='available'; payload.rating=4.5;
+  allDoctors.push(payload); buildAvailableDropdown(); applyDocFilters(); closeModal('add-doctor-modal');
+  ['d-name','d-email','d-phone','d-exp'].forEach(id=>document.getElementById(id).value='');
+}
+
+async function updateDoctorStatus(id, status) {
+  try { await fetch(API+'?action=update_doctor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})}); } catch(e) {}
+  const doc=allDoctors.find(d=>d.id===id); if(doc) doc.status=status;
+  if (highlightedDoctorId===id && status!=='available') { highlightedDoctorId=null; clearAvailQuickInfo(); }
+  buildAvailableDropdown(); applyDocFilters();
+}
+
+async function deleteDoctor(id) {
+  if (!confirm('Remove this doctor from the platform?')) return;
+  try { await fetch(API+`?action=delete_doctor&id=${id}`); } catch(e) {}
+  allDoctors=allDoctors.filter(d=>d.id!==id);
+  if (highlightedDoctorId===id) { highlightedDoctorId=null; clearAvailQuickInfo(); }
+  buildAvailableDropdown(); applyDocFilters();
+}
+
+loadDoctors();
+</script>
+</body>
+</html>

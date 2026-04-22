@@ -13,6 +13,7 @@ class TriageSessionAPITests(APITestCase):
             username='triage_user',
             password='secret123',
             phone_number='9999999999',
+            is_staff=True,
         )
         self.client.force_authenticate(self.user)
 
@@ -81,6 +82,11 @@ class TriageSessionAPITests(APITestCase):
             answer_response.data['session']['answers'][0]['question_text_snapshot'],
             'Are you having severe breathing difficulty?',
         )
+        self.assertEqual(
+            answer_response.data['session']['answers'][0]['question_text'],
+            'Are you having severe breathing difficulty?',
+        )
+        self.assertEqual(answer_response.data['session']['answers'][0]['selected_option_label'], 'Yes')
 
     def test_multiple_answers_can_reach_red_flag_and_preserve_history(self):
         data = self._create_flow()
@@ -103,3 +109,20 @@ class TriageSessionAPITests(APITestCase):
             [answer['option_label_snapshot'] for answer in final_response.data['session']['answers']],
             ['No', 'Yes', 'Yes'],
         )
+        self.assertEqual(
+            [answer['selected_option_label'] for answer in final_response.data['session']['answers']],
+            ['No', 'Yes', 'Yes'],
+        )
+
+    def test_non_staff_user_cannot_access_triage_builder_api(self):
+        user = User.objects.create_user(
+            username='plain_triage_user',
+            password='secret123',
+            phone_number='9999999998',
+            email='plain-triage@example.com',
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.get(reverse('triage-flows'))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

@@ -15,7 +15,7 @@ from .serializers import (
 
 
 class TriageFlowView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
         flows = TriageFlow.objects.prefetch_related('questions__options__transition').all().order_by('name', 'version')
@@ -30,7 +30,7 @@ class TriageFlowView(APIView):
 
 
 class TriageFlowDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_object(self, flow_id):
         try:
@@ -55,7 +55,7 @@ class TriageFlowDetailView(APIView):
 
 
 class TriageQuestionView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
         flow_id = request.query_params.get('flow_id')
@@ -72,7 +72,7 @@ class TriageQuestionView(APIView):
 
 
 class TriageQuestionDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_object(self, question_id):
         try:
@@ -97,7 +97,7 @@ class TriageQuestionDetailView(APIView):
 
 
 class TriageOptionView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
         question_id = request.query_params.get('question_id')
@@ -114,7 +114,7 @@ class TriageOptionView(APIView):
 
 
 class TriageOptionDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_object(self, option_id):
         try:
@@ -139,7 +139,7 @@ class TriageOptionDetailView(APIView):
 
 
 class TriageOptionTransitionView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
         option_id = request.query_params.get('option_id')
@@ -156,7 +156,7 @@ class TriageOptionTransitionView(APIView):
 
 
 class TriageOptionTransitionDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_object(self, transition_id):
         try:
@@ -181,7 +181,7 @@ class TriageOptionTransitionDetailView(APIView):
 
 
 class TriageSessionStartView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def post(self, request):
         serializer = TriageSessionStartSerializer(data=request.data, context={'request': request})
@@ -191,7 +191,7 @@ class TriageSessionStartView(APIView):
 
 
 class TriageSessionListView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get(self, request):
         sessions = (
@@ -206,7 +206,7 @@ class TriageSessionListView(APIView):
 
 
 class TriageSessionDetailView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_object(self, request, session_id):
         try:
@@ -227,7 +227,7 @@ class TriageSessionDetailView(APIView):
 
 
 class TriageSessionAnswerView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
     def get_object(self, request, session_id):
         try:

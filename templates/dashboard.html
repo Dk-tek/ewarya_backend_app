@@ -1,0 +1,139 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="dashboard">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Evaryahealth Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Dashboard</h1>
+      <p id="dash-date"></p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-secondary" onclick="loadDashboard()">🔄 Refresh</button>
+      <a href="/" class="btn-primary">🌐 View Site</a>
+    </div>
+  </div>
+
+  <div class="stats-grid fade-in-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);">📋</div>
+      <div class="stat-info">
+        <div class="num" id="s-total">—</div>
+        <div class="label">Total Consultations</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:linear-gradient(135deg,#FFF1F2,#FEE2E2);">🚨</div>
+      <div class="stat-info">
+        <div class="num" id="s-emergency">—</div>
+        <div class="label">Emergency Cases</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7);">👨‍⚕️</div>
+      <div class="stat-info">
+        <div class="num" id="s-doctors">—</div>
+        <div class="label">Available Doctors</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7);">👤</div>
+      <div class="stat-info">
+        <div class="num" id="s-patients">—</div>
+        <div class="label">Total Patients</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card fade-in-3">
+    <div class="card-header">
+      <h3>📋 Recent Consultations</h3>
+      <a href="/consultations/" class="btn-sm">View All →</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#ID</th><th>Patient</th><th>Age / Gender</th><th>Doctor</th>
+            <th>Specialization</th><th>Symptoms</th><th>Category</th><th>Status</th><th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = null;
+
+const DEMO_STATS = {
+  total_consultations:24, emergency_consultations:5, normal_consultations:19,
+  available_doctors:4, total_doctors:6, total_patients:24, today_consultations:3
+};
+
+const DEMO_CONSULTATIONS = [
+  { id:1, patient_name:'Priya Reddy', age:28, gender:'female', phone:'+91-9876501234', doctor_name:'Dr. Ananya Krishnan', specialization:'General Physician', symptoms:'Fever 102°F, sore throat, body ache since 2 days', category:'normal', status:'completed', home_remedies:'🍯 Honey ginger tea\n🛌 Rest well\n💧 Stay hydrated', created_at:'2025-03-02 10:30:00' },
+  { id:2, patient_name:'Arjun Mehta', age:45, gender:'male', phone:'+91-9876502345', doctor_name:'Dr. Vikram Nair', specialization:'Emergency Medicine', symptoms:'Chest pain and difficulty breathing for 30 mins', category:'emergency', status:'active', home_remedies:'❗ Emergency — go to ER immediately', created_at:'2025-03-03 08:15:00' },
+  { id:3, patient_name:'Sunita Rao', age:35, gender:'female', phone:'+91-9876503456', doctor_name:'Dr. Priya Sharma', specialization:'Pulmonologist', symptoms:'Persistent dry cough for 5 days, mild fever', category:'normal', status:'pending', home_remedies:'🌿 Tulsi tea\n💨 Steam inhalation\n🍯 Honey', created_at:'2025-03-03 09:45:00' },
+  { id:4, patient_name:'Rajiv Kumar', age:62, gender:'male', phone:'+91-9876504567', doctor_name:'Dr. Rajesh Patel', specialization:'Cardiologist', symptoms:'High BP, dizziness, severe headache, vision blurred', category:'emergency', status:'completed', home_remedies:'❗ Emergency care needed', created_at:'2025-03-01 14:20:00' },
+  { id:5, patient_name:'Meena Iyer', age:22, gender:'female', phone:'+91-9876505678', doctor_name:'Dr. Ananya Krishnan', specialization:'General Physician', symptoms:'Stomach pain, nausea, no appetite since morning', category:'normal', status:'completed', home_remedies:'🫚 Ginger tea\n🌿 Ajwain water\n🍌 BRAT diet', created_at:'2025-03-02 16:00:00' },
+  { id:6, patient_name:'Karan Singh', age:30, gender:'male', phone:'+91-9876506789', doctor_name:'Dr. Priya Sharma', specialization:'Pulmonologist', symptoms:'Wheezing and shortness of breath', category:'normal', status:'completed', home_remedies:'💨 Nebulization\n🍯 Honey water', created_at:'2025-03-04 11:00:00' },
+  { id:7, patient_name:'Lakshmi Nair', age:55, gender:'female', phone:'+91-9876507890', doctor_name:'Dr. Rajesh Patel', specialization:'Cardiologist', symptoms:'Palpitations and dizziness for 2 hours', category:'emergency', status:'active', home_remedies:'❗ Seek emergency care', created_at:'2025-03-04 13:30:00' },
+];
+
+function formatTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
+       + ' ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadDashboard() {
+  document.getElementById('dash-date').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  let stats = DEMO_STATS;
+  try { const r=await API ? fetch(API+'?action=get_stats') : Promise.reject(); const d=await r.json(); if(d.success) stats=d.data; } catch(e) {}
+
+  document.getElementById('s-total').textContent     = stats.total_consultations;
+  document.getElementById('s-emergency').textContent = stats.emergency_consultations;
+  document.getElementById('s-doctors').textContent   = `${stats.available_doctors}/${stats.total_doctors}`;
+  document.getElementById('s-patients').textContent  = stats.total_patients;
+
+  let consults = DEMO_CONSULTATIONS;
+  try { const r=await API ? fetch(API+'?action=get_consultations') : Promise.reject(); const d=await r.json(); if(d.success) consults=d.data; } catch(e) {}
+
+  const tbody = document.getElementById('recent-tbody');
+  tbody.innerHTML = '';
+  consults.slice(0,7).forEach(c => {
+    const shortSym = (c.symptoms||'').substring(0,42) + ((c.symptoms||'').length>42?'…':'');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;color:var(--muted);font-size:.75rem;">#${c.id}</td>
+      <td><strong style="font-size:.83rem;">${c.patient_name||'—'}</strong></td>
+      <td style="font-size:.76rem;color:var(--muted);">${c.age?c.age+'y':'—'} · ${c.gender||'—'}</td>
+      <td style="font-size:.83rem;">${c.doctor_name||'—'}</td>
+      <td style="font-size:.75rem;color:var(--muted);">${c.specialization||'—'}</td>
+      <td style="font-size:.79rem;max-width:200px;color:var(--slate2);">${shortSym}</td>
+      <td><span class="badge badge-${c.category}">${c.category==='emergency'?'🚨 Emergency':'✅ Normal'}</span></td>
+      <td><span class="badge badge-${c.status}">${c.status}</span></td>
+      <td style="color:var(--muted);font-size:.75rem;white-space:nowrap;">${formatTime(c.created_at)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

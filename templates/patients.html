@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="patients">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patients — Evaryahealth Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Patients</h1>
+      <p>Patient records &amp; history</p>
+    </div>
+    <div class="top-actions">
+      <div class="search-box">🔍<input type="text" placeholder="Search patients..." oninput="searchPatients(this.value)"></div>
+      <button class="btn-secondary" onclick="loadPatients()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <div class="card fade-in-2">
+    <div class="card-header">
+      <h3>All Patients</h3>
+      <span id="patient-count" style="font-size:.8rem;color:var(--muted);"></span>
+    </div>
+    <div class="filter-bar">
+      <label>From Date</label>
+      <input type="date" id="p-date-from" onchange="applyPatientFilters()">
+      <span class="sep">—</span>
+      <label>To Date</label>
+      <input type="date" id="p-date-to" onchange="applyPatientFilters()">
+      <span class="sep">|</span>
+      <label>Doctor Attended</label>
+      <select id="p-doctor-filter" onchange="applyPatientFilters()">
+        <option value="all">All Doctors</option>
+      </select>
+      <span class="sep">|</span>
+      <label>Status</label>
+      <select id="p-status-filter" onchange="applyPatientFilters()">
+        <option value="all">All</option>
+        <option value="completed">Completed</option>
+        <option value="active">Active</option>
+        <option value="pending">Pending</option>
+      </select>
+      <button class="btn-sm" onclick="clearPatientFilters()" style="margin-left:4px;">✕ Clear</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th>
+            <th>Doctor Attended</th><th>Specialization</th><th>Consult Date</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="patients-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = null;
+let allPatients = [], patientSearchQuery = '';
+
+const DEMO_CONSULTATIONS = [
+  { id:1, patient_name:'Priya Reddy', age:28, gender:'female', phone:'+91-9876501234', doctor_name:'Dr. Ananya Krishnan', specialization:'General Physician', status:'completed', created_at:'2025-03-02 10:30:00' },
+  { id:2, patient_name:'Arjun Mehta', age:45, gender:'male', phone:'+91-9876502345', doctor_name:'Dr. Vikram Nair', specialization:'Emergency Medicine', status:'active', created_at:'2025-03-03 08:15:00' },
+  { id:3, patient_name:'Sunita Rao', age:35, gender:'female', phone:'+91-9876503456', doctor_name:'Dr. Priya Sharma', specialization:'Pulmonologist', status:'pending', created_at:'2025-03-03 09:45:00' },
+  { id:4, patient_name:'Rajiv Kumar', age:62, gender:'male', phone:'+91-9876504567', doctor_name:'Dr. Rajesh Patel', specialization:'Cardiologist', status:'completed', created_at:'2025-03-01 14:20:00' },
+  { id:5, patient_name:'Meena Iyer', age:22, gender:'female', phone:'+91-9876505678', doctor_name:'Dr. Ananya Krishnan', specialization:'General Physician', status:'completed', created_at:'2025-03-02 16:00:00' },
+  { id:6, patient_name:'Karan Singh', age:30, gender:'male', phone:'+91-9876506789', doctor_name:'Dr. Priya Sharma', specialization:'Pulmonologist', status:'completed', created_at:'2025-03-04 11:00:00' },
+  { id:7, patient_name:'Lakshmi Nair', age:55, gender:'female', phone:'+91-9876507890', doctor_name:'Dr. Rajesh Patel', specialization:'Cardiologist', status:'active', created_at:'2025-03-04 13:30:00' },
+];
+
+function formatTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
+       + ' ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadPatients() {
+  let data = DEMO_CONSULTATIONS;
+  try { const r=await API ? fetch(API+'?action=get_consultations') : Promise.reject(); const d=await r.json(); if(d.success) data=d.data; } catch(e) {}
+  allPatients = data.map(c=>({id:c.id,name:c.patient_name,age:c.age,gender:c.gender,phone:c.phone,doctor_name:c.doctor_name,specialization:c.specialization,status:c.status,created_at:c.created_at}));
+  const docSel = document.getElementById('p-doctor-filter');
+  const uniqueDoctors = [...new Set(allPatients.map(p=>p.doctor_name).filter(Boolean))];
+  docSel.innerHTML = '<option value="all">All Doctors</option>';
+  uniqueDoctors.forEach(name => { const opt=document.createElement('option'); opt.value=name; opt.textContent=name; docSel.appendChild(opt); });
+  applyPatientFilters();
+}
+
+function applyPatientFilters() {
+  const dateFrom=document.getElementById('p-date-from').value;
+  const dateTo=document.getElementById('p-date-to').value;
+  const doctor=document.getElementById('p-doctor-filter').value;
+  const status=document.getElementById('p-status-filter').value;
+  let filtered=allPatients;
+  if (dateFrom) { const from=new Date(dateFrom); filtered=filtered.filter(p=>new Date(p.created_at)>=from); }
+  if (dateTo) { const to=new Date(dateTo); to.setHours(23,59,59,999); filtered=filtered.filter(p=>new Date(p.created_at)<=to); }
+  if (doctor!=='all') filtered=filtered.filter(p=>p.doctor_name===doctor);
+  if (status!=='all') filtered=filtered.filter(p=>p.status===status);
+  if (patientSearchQuery) filtered=filtered.filter(p=>(p.name||'').toLowerCase().includes(patientSearchQuery)||(p.phone||'').toLowerCase().includes(patientSearchQuery));
+  renderPatients(filtered);
+}
+
+function searchPatients(q) { patientSearchQuery=q.toLowerCase(); applyPatientFilters(); }
+
+function clearPatientFilters() {
+  document.getElementById('p-date-from').value='';
+  document.getElementById('p-date-to').value='';
+  document.getElementById('p-doctor-filter').value='all';
+  document.getElementById('p-status-filter').value='all';
+  patientSearchQuery=''; renderPatients(allPatients);
+}
+
+function renderPatients(data) {
+  document.getElementById('patient-count').textContent=data.length+' record(s)';
+  const tbody=document.getElementById('patients-tbody'); tbody.innerHTML='';
+  if (!data.length) { tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px;">No patients match the selected filters.</td></tr>'; return; }
+  data.forEach(p => {
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="color:var(--muted);font-weight:700;">#${p.id}</td>
+      <td><strong>${p.name||'—'}</strong></td>
+      <td>${p.age||'—'}</td><td>${p.gender||'—'}</td><td>${p.phone||'—'}</td>
+      <td><strong>${p.doctor_name||'—'}</strong></td>
+      <td style="font-size:.78rem;color:var(--muted);">${p.specialization||'—'}</td>
+      <td style="font-size:.78rem;color:var(--muted);">${formatTime(p.created_at)}</td>
+      <td><span class="badge badge-${p.status}">${p.status}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+loadPatients();
+</script>
+</body>
+</html>

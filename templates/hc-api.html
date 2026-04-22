@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="hc-api">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Response — Evarya Health Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>API Response</h1>
+      <p>Last response received from the Django API.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-secondary" onclick="document.getElementById('apiOutput').textContent=localStorage.getItem('evarya_last_api')||'{}'">🔄 Reload</button>
+      <button class="btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('apiOutput').textContent).then(()=>alert('Copied!'))">📋 Copy</button>
+    </div>
+  </div>
+
+  <div class="hc-card fade-in-2">
+    <div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Debug</div>
+      <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Last API Response</h3>
+    </div>
+    <pre class="hc-pre" id="apiOutput" style="max-height:600px;">{}</pre>
+    <div style="font-size:.73rem;color:var(--muted);">This view updates automatically whenever a request is made from a Health Console page.</div>
+  </div>
+</div>
+
+<script src="{% static 'js/hc-core.js' %}"></script>
+<script>
+  const stored = localStorage.getItem('evarya_last_api');
+  if (stored) document.getElementById('apiOutput').textContent = stored;
+</script>
+</body>
+</html>

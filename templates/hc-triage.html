@@ -1,0 +1,1343 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="hc-triage">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triage Test — Evarya Health Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<style>
+
+/* ═══════════════════════════════════════
+   PAGE LAYOUT
+═══════════════════════════════════════ */
+.triage-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media(max-width:1080px){ .triage-page { grid-template-columns:1fr; } }
+
+/* ═══════════════════════════════════════
+   STEP WIZARD HEADER
+═══════════════════════════════════════ */
+.wizard-header {
+  background: linear-gradient(135deg, #0F172A 0%, #0a3d35 100%);
+  border-radius: 18px;
+  padding: 28px 32px;
+  margin-bottom: 22px;
+  position: relative;
+  overflow: hidden;
+}
+.wizard-header::before {
+  content: '';
+  position: absolute;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(13,148,136,.18) 0%, transparent 70%);
+  top: -120px; right: -80px;
+  pointer-events: none;
+}
+.wizard-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+.wh-inner { position: relative; z-index: 1; }
+.wh-top {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px; margin-bottom: 20px;
+}
+.wh-title-block {}
+.wh-eyebrow {
+  font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: #5EEAD4; margin-bottom: 4px;
+}
+.wh-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.6rem; color: #fff; line-height: 1.15;
+}
+.wh-sub { font-size: .82rem; color: rgba(255,255,255,.45); margin-top: 4px; }
+
+/* ── step pills ── */
+.wh-steps {
+  display: flex; gap: 0; align-items: center;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px;
+  padding: 6px 8px;
+  flex-wrap: wrap; gap: 4px;
+}
+.wh-step {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 8px;
+  font-size: .74rem; font-weight: 700;
+  color: rgba(255,255,255,.35);
+  transition: all .25s;
+  cursor: default;
+}
+.wh-step.done {
+  color: #5EEAD4;
+  background: rgba(13,148,136,.15);
+}
+.wh-step.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(13,148,136,.4), rgba(5,150,105,.3));
+  box-shadow: 0 2px 10px rgba(13,148,136,.25);
+}
+.wh-step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: .65rem; font-weight: 800;
+  border: 1.5px solid currentColor;
+  opacity: .7; flex-shrink: 0;
+}
+.wh-step.done .wh-step-num { opacity: 1; }
+.wh-step.active .wh-step-num { border-color: #fff; opacity: 1; }
+
+/* ── progress bar ── */
+.wh-progress-wrap { margin-top: 4px; }
+.wh-progress-label {
+  display: flex; justify-content: space-between;
+  font-size: .7rem; color: rgba(255,255,255,.35);
+  font-weight: 600; margin-bottom: 7px;
+}
+.wh-progress-label span { color: #5EEAD4; }
+.wh-track {
+  height: 4px; background: rgba(255,255,255,.1);
+  border-radius: 99px; overflow: hidden;
+}
+.wh-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #0d9488, #34d399);
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+  width: 0%;
+}
+
+/* ═══════════════════════════════════════
+   LAUNCH CARD (Step 1)
+═══════════════════════════════════════ */
+.launch-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(15,23,42,.07);
+}
+.launch-card-header {
+  background: linear-gradient(135deg, #f0fdf9, #ecfdf5);
+  padding: 20px 24px;
+  border-bottom: 1px solid #d1fae5;
+  display: flex; align-items: center; gap: 12px;
+}
+.launch-icon {
+  width: 44px; height: 44px; border-radius: 13px;
+  background: linear-gradient(135deg, #0d9488, #059669);
+  display: grid; place-items: center; font-size: 20px;
+  box-shadow: 0 4px 12px rgba(13,148,136,.3);
+  flex-shrink: 0;
+}
+.launch-card-title { font-size: .98rem; font-weight: 800; color: var(--navy); }
+.launch-card-sub   { font-size: .74rem; color: var(--muted); margin-top: 2px; }
+
+.launch-card-body { padding: 22px 24px; display: grid; gap: 14px; }
+
+/* styled select */
+.tr-select-wrap { position: relative; }
+.tr-select-label {
+  font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: #334155; margin-bottom: 6px; display: block;
+}
+.tr-select {
+  width: 100%; padding: 11px 40px 11px 14px;
+  border-radius: 10px; border: 1.5px solid var(--border);
+  font-family: 'Sora', sans-serif; font-size: .86rem;
+  color: var(--navy); background: #fff; outline: none;
+  appearance: none; cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.tr-select:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,.1); }
+
+/* launch btn */
+.launch-btn {
+  width: 100%; padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0d9488, #059669);
+  color: #fff; font-family: 'Sora', sans-serif;
+  font-weight: 800; font-size: .9rem; border: none;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 5px 18px rgba(13,148,136,.3);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.launch-btn:hover { transform: translateY(-1px); box-shadow: 0 9px 26px rgba(13,148,136,.4); }
+.launch-btn:disabled { opacity: .55; transform: none; cursor: not-allowed; }
+
+/* info chips */
+.info-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.info-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: #f1f5f9; border: 1px solid var(--border);
+  border-radius: 7px; padding: 5px 10px;
+  font-size: .72rem; font-weight: 600; color: var(--muted);
+}
+
+/* ═══════════════════════════════════════
+   QUESTION CARD (Step 2 — Active Session)
+═══════════════════════════════════════ */
+.q-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(15,23,42,.07);
+  display: flex; flex-direction: column;
+}
+
+/* idle state */
+.q-idle {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 48px 32px; text-align: center;
+}
+.q-idle-icon { font-size: 2.8rem; opacity: .4; }
+.q-idle-text { font-size: .9rem; color: var(--muted); font-weight: 500; max-width: 240px; line-height: 1.6; }
+
+/* active question */
+.q-active { display: none; flex-direction: column; }
+
+/* question header strip */
+.q-header {
+  background: linear-gradient(135deg, #0F172A, #0a3d35);
+  padding: 18px 22px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.q-eyebrow {
+  font-size: .65rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: #5EEAD4; margin-bottom: 4px;
+}
+.q-text {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.15rem; color: #fff; line-height: 1.3;
+  max-width: 340px;
+}
+.q-help-text { font-size: .75rem; color: rgba(255,255,255,.45); margin-top: 5px; line-height: 1.5; }
+.q-step-badge {
+  background: rgba(13,148,136,.3);
+  border: 1px solid rgba(13,148,136,.5);
+  border-radius: 8px; padding: 4px 10px;
+  font-size: .68rem; font-weight: 800; color: #5EEAD4;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* options list */
+.q-options { padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+.q-option {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 15px; border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: #fafbfc; cursor: pointer;
+  transition: all .2s; position: relative; overflow: hidden;
+}
+.q-option::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(13,148,136,.06), rgba(5,150,105,.03));
+  opacity: 0; transition: opacity .2s; border-radius: 12px;
+}
+.q-option:hover { border-color: rgba(13,148,136,.4); transform: translateX(3px); }
+.q-option:hover::before { opacity: 1; }
+.q-option.selected {
+  border-color: #0d9488;
+  background: #f0fdf9;
+  transform: translateX(3px);
+  box-shadow: 0 0 0 3px rgba(13,148,136,.1);
+}
+.q-option.selected::before { opacity: 1; }
+.q-option.flag-red { border-color: rgba(220,38,38,.2); background: #fff8f8; }
+.q-option.flag-red:hover { border-color: rgba(220,38,38,.5); }
+.q-option.flag-red.selected { border-color: #dc2626; background: #fff1f1; box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
+
+.q-opt-radio {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid #cbd5e1; flex-shrink: 0;
+  display: grid; place-items: center;
+  transition: all .2s;
+}
+.q-option.selected .q-opt-radio {
+  background: #0d9488; border-color: #0d9488;
+}
+.q-option.selected .q-opt-radio::after {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: #fff;
+}
+.q-option.flag-red.selected .q-opt-radio { background: #dc2626; border-color: #dc2626; }
+
+.q-opt-label { font-size: .86rem; font-weight: 600; color: var(--navy); line-height: 1.3; flex: 1; }
+.q-opt-flag {
+  font-size: .62rem; font-weight: 800; letter-spacing: .05em;
+  text-transform: uppercase; padding: 2px 7px;
+  border-radius: 5px; flex-shrink: 0;
+}
+.q-opt-flag.green  { background: #dcfce7; color: #15803d; }
+.q-opt-flag.yellow { background: #fef3c7; color: #92400e; }
+.q-opt-flag.red    { background: #fee2e2; color: #b91c1c; }
+
+/* question footer */
+.q-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: #fafbfc;
+}
+.q-submit-btn {
+  flex: 1; padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0d9488, #059669);
+  color: #fff; font-family: 'Sora', sans-serif;
+  font-weight: 700; font-size: .86rem; border: none;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 4px 14px rgba(13,148,136,.28);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.q-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 7px 20px rgba(13,148,136,.38); }
+.q-submit-btn:disabled { opacity: .5; transform: none; cursor: not-allowed; }
+
+.q-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: qSpin .7s linear infinite;
+  display: none;
+}
+.q-submit-btn.loading .q-spinner { display: block; }
+.q-submit-btn.loading .q-btn-label { display: none; }
+@keyframes qSpin { to { transform:rotate(360deg); } }
+
+/* ═══════════════════════════════════════
+   RESULT CARD (Step 3 — Completed)
+═══════════════════════════════════════ */
+.result-card {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: none;
+}
+.result-card.show { display: block; }
+
+.result-header {
+  padding: 20px 24px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.result-header.green  { background: linear-gradient(135deg,#f0fdf4,#ecfdf5); border-bottom: 1px solid #bbf7d0; }
+.result-header.yellow { background: linear-gradient(135deg,#fffbeb,#fef3c7); border-bottom: 1px solid #fde68a; }
+.result-header.red    { background: linear-gradient(135deg,#fff1f2,#fee2e2); border-bottom: 1px solid #fecaca; }
+
+.result-badge {
+  width: 54px; height: 54px; border-radius: 16px;
+  display: grid; place-items: center; font-size: 26px;
+  flex-shrink: 0;
+}
+.result-badge.green  { background: #dcfce7; }
+.result-badge.yellow { background: #fef3c7; }
+.result-badge.red    { background: #fee2e2; }
+
+.result-flag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: .7rem; font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; margin-bottom: 5px;
+}
+.result-flag.green  { background: #dcfce7; color: #15803d; }
+.result-flag.yellow { background: #fef3c7; color: #92400e; }
+.result-flag.red    { background: #fee2e2; color: #b91c1c; }
+
+.result-title { font-size: .98rem; font-weight: 800; color: var(--navy); margin-bottom: 3px; }
+
+.result-message {
+  margin: 0 24px 18px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-left: 3px solid #0d9488;
+  border-radius: 10px;
+  font-size: .84rem; color: var(--navy); line-height: 1.7;
+}
+.result-message.red   { border-left-color: #dc2626; }
+.result-message.yellow{ border-left-color: #f59e0b; }
+
+/* answers history */
+.result-answers-title {
+  padding: 10px 24px;
+  font-size: .68rem; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--muted);
+  border-top: 1px solid var(--border);
+  background: #fafbfc;
+}
+.result-answer-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: .82rem;
+}
+.result-answer-row:last-child { border-bottom: none; }
+.rar-q { color: var(--muted); flex: 1; }
+.rar-a { font-weight: 700; color: var(--navy); text-align: right; flex-shrink: 0; max-width: 55%; }
+
+.result-actions {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.result-restart-btn {
+  padding: 9px 16px; border-radius: 9px;
+  border: 1.5px solid var(--border);
+  background: #fff; color: var(--navy);
+  font-family: 'Sora', sans-serif; font-size: .78rem;
+  font-weight: 700; cursor: pointer; transition: all .2s;
+}
+.result-restart-btn:hover { border-color: #0d9488; color: #0d9488; }
+
+/* ═══════════════════════════════════════
+   SESSIONS LIST
+═══════════════════════════════════════ */
+.sessions-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(15,23,42,.07);
+}
+.sessions-panel-header {
+  padding: 16px 22px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.sp-title-block {}
+.sp-eyebrow { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.sp-title { font-size: .98rem; font-weight: 800; color: var(--navy); }
+.sp-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.sp-select {
+  padding: 7px 32px 7px 12px; border-radius: 9px;
+  border: 1.5px solid var(--border);
+  font-family: 'Sora', sans-serif; font-size: .76rem;
+  color: var(--navy); background: #fff; outline: none;
+  appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+  transition: border-color .2s;
+}
+.sp-select:focus { border-color: #0d9488; }
+
+.sp-load-btn {
+  padding: 7px 14px; border-radius: 9px;
+  background: linear-gradient(135deg,#0d9488,#059669);
+  color: #fff; font-family: 'Sora', sans-serif;
+  font-size: .76rem; font-weight: 700; border: none;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 3px 10px rgba(13,148,136,.25);
+}
+.sp-load-btn:hover { transform: translateY(-1px); }
+
+.sessions-list { max-height: 340px; overflow-y: auto; }
+.sessions-list::-webkit-scrollbar { width: 3px; }
+.sessions-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* session row */
+.session-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 22px; border-bottom: 1px solid #f1f5f9;
+  cursor: pointer; transition: background .18s;
+  position: relative;
+}
+.session-row:last-child { border-bottom: none; }
+.session-row:hover { background: #f8fafc; }
+.session-row.active-row { background: #f0fdf9; }
+
+.sr-flag {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.sr-flag.green  { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+.sr-flag.yellow { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.15); }
+.sr-flag.red    { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+.sr-flag.none   { background: #94a3b8; }
+
+.sr-body { flex: 1; min-width: 0; }
+.sr-name { font-size: .85rem; font-weight: 700; color: var(--navy); }
+.sr-meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+.sr-status-pill {
+  padding: 3px 9px; border-radius: 20px;
+  font-size: .65rem; font-weight: 800; flex-shrink: 0;
+}
+.sr-status-pill.in-progress { background: #dbeafe; color: #1e40af; }
+.sr-status-pill.completed   { background: #dcfce7; color: #15803d; }
+
+.sr-open-btn {
+  padding: 5px 11px; border-radius: 7px;
+  border: 1.5px solid var(--border); background: #fff;
+  font-family: 'Sora', sans-serif; font-size: .7rem;
+  font-weight: 700; cursor: pointer; color: var(--navy);
+  transition: all .18s; flex-shrink: 0;
+}
+.sr-open-btn:hover { border-color: #0d9488; color: #0d9488; }
+
+.sessions-empty {
+  padding: 40px 24px; text-align: center;
+  font-size: .84rem; color: var(--muted);
+}
+
+/* ═══════════════════════════════════════
+   SESSION DETAIL PANEL
+═══════════════════════════════════════ */
+.detail-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(15,23,42,.07);
+}
+.detail-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbfc;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.dh-label { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.dh-title { font-size: .98rem; font-weight: 800; color: var(--navy); }
+.detail-body { padding: 18px 22px; display: grid; gap: 16px; }
+.detail-empty {
+  padding: 30px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .82rem;
+  background: #fafbfc;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.detail-field {
+  border: 1px solid #eef2f7;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.detail-field-label {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.detail-field-value {
+  font-size: .84rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.detail-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.detail-table thead {
+  background: #f8fafc;
+}
+.detail-table th,
+.detail-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  text-align: left;
+  vertical-align: top;
+  font-size: .8rem;
+}
+.detail-table th {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+}
+.detail-table td {
+  color: var(--navy);
+}
+.detail-table tbody tr:last-child td { border-bottom: none; }
+.detail-table .muted { color: var(--muted); }
+@media(max-width:860px){
+  .detail-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════
+   STATUS BAR
+═══════════════════════════════════════ */
+.tr-status-bar {
+  border-radius: 12px; padding: 11px 16px;
+  font-size: .8rem; font-weight: 600;
+  display: flex; align-items: center; gap: 9px;
+  transition: all .2s; margin-bottom: 18px;
+  border: 1px solid var(--line);
+  background: #fff; color: var(--muted);
+}
+.tr-status-bar.err { background: #fff1f1; border-color: #fecaca; color: #b91c1c; }
+.tr-status-bar.ok  { background: #f0fdf9; border-color: #bbf7d0; color: #15803d; }
+
+/* ═══════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════ */
+@keyframes slideIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.slide-in { animation: slideIn .3s ease both; }
+
+/* ═══════════════════════════════════════
+   QUICK ACTIONS BAR
+═══════════════════════════════════════ */
+.quick-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.quick-btn {
+  padding: 8px 16px; border-radius: 9px;
+  border: 1.5px solid var(--border);
+  background: #fff; color: var(--navy);
+  font-family: 'Sora', sans-serif; font-size: .76rem;
+  font-weight: 700; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.quick-btn:hover { border-color: #0d9488; color: #0d9488; background: #f0fdf9; }
+.quick-btn.primary {
+  background: linear-gradient(135deg,#0d9488,#059669);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 3px 12px rgba(13,148,136,.25);
+}
+.quick-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(13,148,136,.35); }
+</style>
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+
+  <!-- ══ PAGE HEADER ══ -->
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Triage Test</h1>
+      <p>Run patient triage sessions step by step.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-secondary" id="loadEverything">🔄 Refresh</button>
+      <button class="btn-primary" id="sampleFlow">✨ Sample Flow</button>
+    </div>
+  </div>
+
+  <!-- ══ STATUS BAR ══ -->
+  <div class="tr-status-bar fade-in" id="status">
+    <span>🩺</span> Ready — select a flow and start a triage session below.
+  </div>
+
+  <!-- ══ WIZARD HEADER ══ -->
+  <div class="wizard-header fade-in">
+    <div class="wh-inner">
+      <div class="wh-top">
+        <div class="wh-title-block">
+          <div class="wh-eyebrow">Step-by-Step Triage</div>
+          <div class="wh-title">Patient Triage Wizard</div>
+          <div class="wh-sub" id="wh-sub-text">Choose a flow to begin evaluating patient symptoms.</div>
+        </div>
+        <div class="wh-steps" id="wh-steps">
+          <div class="wh-step active" data-step="1">
+            <div class="wh-step-num">1</div> Launch
+          </div>
+          <div class="wh-step" data-step="2">
+            <div class="wh-step-num">2</div> Questions
+          </div>
+          <div class="wh-step" data-step="3">
+            <div class="wh-step-num">3</div> Result
+          </div>
+        </div>
+      </div>
+      <div class="wh-progress-wrap">
+        <div class="wh-progress-label">
+          <span id="wh-prog-text">Not started</span>
+          <span id="wh-prog-pct">0%</span>
+        </div>
+        <div class="wh-track"><div class="wh-fill" id="wh-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ QUICK ACTIONS ══ -->
+  <div class="quick-bar fade-in-2">
+    <button class="quick-btn primary" onclick="scrollToSection('launch-section')">🚀 New Session</button>
+    <button class="quick-btn" onclick="loadSessionsUI()">📋 Load Sessions</button>
+    <button class="quick-btn" onclick="document.getElementById('sampleFlow').click()">✨ Create Sample Flow</button>
+    <button class="quick-btn" onclick="restartWizard()">🔄 Reset Wizard</button>
+  </div>
+
+  <!-- ══ STEP 1 + STEP 2 (side by side) ══ -->
+  <div class="triage-page fade-in-2" id="launch-section">
+
+    <!-- STEP 1: Launch -->
+    <form id="startSessionForm" onsubmit="handleStartSession(event)">
+      <div class="launch-card">
+        <div class="launch-card-header">
+          <div class="launch-icon">🚀</div>
+          <div>
+            <div class="launch-card-title">Launch Triage Session</div>
+            <div class="launch-card-sub">Step 1 of 3 — Configure &amp; Start</div>
+          </div>
+        </div>
+        <div class="launch-card-body">
+          <div>
+            <label class="tr-select-label">Triage Flow</label>
+            <div class="tr-select-wrap">
+              <select name="flow_id" required class="tr-select" id="flow-select">
+                <option value="">— Select a triage flow —</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="tr-select-label">Patient / Family Member</label>
+            <div class="tr-select-wrap">
+              <select name="family_member_id" class="tr-select" id="member-select">
+                <option value="">Self (logged-in user)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="info-chips">
+            <div class="info-chip">🔒 Secure session</div>
+            <div class="info-chip">📊 Auto-scored</div>
+            <div class="info-chip">🩺 Clinical grade</div>
+          </div>
+
+          <button type="submit" class="launch-btn" id="launch-btn">
+            🩺 Start Triage Session
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- STEP 2: Active Question -->
+    <div class="q-card" id="q-card">
+
+      <!-- Idle state -->
+      <div class="q-idle" id="q-idle">
+        <div class="q-idle-icon">🩺</div>
+        <div class="q-idle-text">The current question will appear here once you start or open a session.</div>
+      </div>
+
+      <!-- Active question (hidden until session starts) -->
+      <div class="q-active" id="q-active">
+        <div class="q-header">
+          <div>
+            <div class="q-eyebrow" id="q-eyebrow">Question 1 · Symptoms</div>
+            <div class="q-text" id="q-text">Loading question…</div>
+            <div class="q-help-text" id="q-help"></div>
+          </div>
+          <div class="q-step-badge" id="q-step-badge">Q1</div>
+        </div>
+        <div class="q-options" id="q-options-list"></div>
+        <div class="q-footer">
+          <button class="q-submit-btn" id="q-submit-btn" onclick="submitAnswer()" type="button">
+            <div class="q-spinner"></div>
+            <span class="q-btn-label">Submit Answer →</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Completed state (hidden until done) -->
+      <div class="q-idle" id="q-completed" style="display:none;">
+        <div class="q-idle-icon">✅</div>
+        <div class="q-idle-text">Session complete. See the result below.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ STEP 3: RESULT ══ -->
+  <div class="result-card fade-in-3" id="result-card" style="margin-top:20px;">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- ══ SESSIONS + DETAIL ══ -->
+  <div class="triage-page fade-in-3" style="margin-top:20px;">
+
+    <!-- Sessions list -->
+    <div class="sessions-panel">
+      <div class="sessions-panel-header">
+        <div class="sp-title-block">
+          <div class="sp-eyebrow">Records</div>
+          <div class="sp-title">All Sessions</div>
+        </div>
+        <div class="sp-controls">
+          <select id="sessionStatus" class="sp-select">
+            <option value="">All Statuses</option>
+            <option>IN_PROGRESS</option>
+            <option>COMPLETED</option>
+          </select>
+          <button class="sp-load-btn" onclick="loadSessionsUI()">Load Sessions</button>
+        </div>
+      </div>
+      <div class="sessions-list" id="sessionList">
+        <div class="sessions-empty">Click "Load Sessions" to view your triage history.</div>
+      </div>
+    </div>
+
+    <!-- Session detail -->
+    <div class="detail-panel">
+      <div class="detail-header">
+        <div>
+          <div class="dh-label">Session Details</div>
+          <div class="dh-title">Selected Session</div>
+        </div>
+        <button class="result-restart-btn" onclick="clearSessionDetail()">Clear</button>
+      </div>
+      <div class="detail-body" id="sessionDetail">
+        <div class="detail-empty">Open a session to view its details in a friendly summary table.</div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /main-content -->
+
+<script src="{% static 'js/hc-core.js' %}"></script>
+<script>
+/* ─────────────────────────────────
+   WIZARD STATE
+───────────────────────────────── */
+let wizardStep = 1;
+let selectedOptionId  = null;
+let selectedOptionLabel = '';
+let questionIndex = 0;
+let totalQuestions = 7;
+let activeSession = null;
+
+/* ─────────────────────────────────
+   STATUS BAR
+───────────────────────────────── */
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('status');
+  el.className = 'tr-status-bar' + (isError ? ' err' : ' ok');
+  el.innerHTML = (isError ? '⚠️ ' : '✅ ') + msg;
+}
+
+/* ─────────────────────────────────
+   WIZARD STEPS
+───────────────────────────────── */
+function setWizardStep(step) {
+  wizardStep = step;
+  document.querySelectorAll('.wh-step').forEach(el => {
+    const s = parseInt(el.dataset.step);
+    el.classList.remove('active','done');
+    if (s < step)  el.classList.add('done');
+    if (s === step) el.classList.add('active');
+  });
+  const subTexts = {
+    1: 'Choose a flow to begin evaluating patient symptoms.',
+    2: 'Answer each question carefully. Select one option per question.',
+    3: 'Session complete. Review the final assessment below.'
+  };
+  document.getElementById('wh-sub-text').textContent = subTexts[step] || '';
+}
+
+function updateProgress(cur, tot) {
+  const pct = tot > 0 ? Math.round((cur / tot) * 100) : 0;
+  document.getElementById('wh-fill').style.width = pct + '%';
+  document.getElementById('wh-prog-pct').textContent = pct + '%';
+  document.getElementById('wh-prog-text').textContent =
+    tot > 0 ? `Question ${cur} of ${tot}` : 'Not started';
+}
+
+function restartWizard() {
+  wizardStep = 1;
+  selectedOptionId = null;
+  questionIndex = 0;
+  activeSession = null;
+  setWizardStep(1);
+  updateProgress(0, 0);
+  document.getElementById('q-idle').style.display = 'flex';
+  document.getElementById('q-active').style.display = 'none';
+  document.getElementById('q-completed').style.display = 'none';
+  const rc = document.getElementById('result-card');
+  rc.classList.remove('show'); rc.innerHTML = '';
+  setStatus('Wizard reset. Select a flow to begin a new session.');
+}
+
+/* ─────────────────────────────────
+   FILL SELECTS (override hc-core's)
+───────────────────────────────── */
+function fillFlowSelect(flows) {
+  const sel = document.getElementById('flow-select');
+  sel.innerHTML = '<option value="">— Select a triage flow —</option>';
+  flows.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = `#${f.id} ${f.name} (v${f.version})`;
+    sel.appendChild(opt);
+  });
+}
+
+function fillMemberSelect(members) {
+  const sel = document.getElementById('member-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Self (logged-in user)</option>';
+  members.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = `${m.name} (${m.age}y · ${m.gender})`;
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+function fillTriageFlowSelect(flows) {
+  const sel = document.getElementById('flow-select');
+  const cur = sel.value;
+  const activeFlows = (flows || []).filter(flow => flow.is_active);
+  sel.innerHTML = '<option value="">Select a triage flow</option>';
+  activeFlows.forEach(flow => {
+    const opt = document.createElement('option');
+    opt.value = flow.id;
+    opt.textContent = `#${flow.id} ${flow.name} (v${flow.version})`;
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some(option => option.value === cur)) sel.value = cur;
+  if (!activeFlows.length) setStatus('No active triage flows found. Click Create Sample Flow first.', true);
+}
+
+/* ─────────────────────────────────
+   START SESSION
+───────────────────────────────── */
+async function handleStartSession(event) {
+  event.preventDefault();
+  const form     = event.target;
+  const flowId   = form.flow_id.value;
+  const memberId = form.family_member_id.value;
+
+  if (!flowId) { setStatus('Please select a triage flow.', true); return; }
+
+  const btn = document.getElementById('launch-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Starting…';
+  setStatus('Starting triage session…');
+
+  const payload = { flow_id: parseInt(flowId) };
+  if (memberId) payload.family_member_id = parseInt(memberId);
+
+  try {
+    const data = await request('/api/triage/sessions/start/', {
+      method: 'POST', body: JSON.stringify(payload)
+    });
+    activeSession = data.session;
+    questionIndex = 1;
+    setWizardStep(2);
+    renderQuestion(activeSession.current_question, questionIndex);
+    setStatus('Session started. Answer question ' + questionIndex + ' to continue.');
+    await loadSessionsUI();
+    scrollToSection('q-card');
+  } catch(e) {
+    setStatus('Failed to start session: ' + e.message, true);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🩺 Start Triage Session';
+}
+
+/* ─────────────────────────────────
+   RENDER QUESTION
+───────────────────────────────── */
+function renderQuestion(question, qIdx) {
+  if (!question) return;
+  selectedOptionId = null; selectedOptionLabel = '';
+
+  document.getElementById('q-idle').style.display = 'none';
+  document.getElementById('q-completed').style.display = 'none';
+  document.getElementById('q-active').style.display = 'flex';
+  document.getElementById('q-active').classList.add('slide-in');
+
+  document.getElementById('q-eyebrow').textContent =
+    `Question ${qIdx} · ${question.category || 'Triage'}`;
+  document.getElementById('q-text').textContent = question.text || '';
+  document.getElementById('q-step-badge').textContent = 'Q' + qIdx;
+
+  const helpEl = document.getElementById('q-help');
+  helpEl.textContent = question.help_text || '';
+  helpEl.style.display = question.help_text ? 'block' : 'none';
+
+  const optsEl = document.getElementById('q-options-list');
+  optsEl.innerHTML = (question.options || []).map(opt => {
+    const flag = (opt.flag_effect || 'NONE').toLowerCase();
+    const isRed = flag === 'red';
+    const flagHtml = flag !== 'none'
+      ? `<span class="q-opt-flag ${flag}">${opt.flag_effect}</span>` : '';
+    return `
+      <button type="button" class="q-option${isRed?' flag-red':''}" data-id="${opt.id}" data-label="${escHtml(opt.label)}">
+        <div class="q-opt-radio"></div>
+        <div class="q-opt-label">${escHtml(opt.label)}</div>
+        ${flagHtml}
+      </button>`;
+  }).join('');
+
+  const submitBtn = document.getElementById('q-submit-btn');
+  submitBtn.classList.remove('loading');
+  submitBtn.disabled = false;
+
+  updateProgress(qIdx - 1, totalQuestions);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderSessionDetail(session) {
+  const el = document.getElementById('sessionDetail');
+  if (!el) return;
+  if (!session) {
+    el.innerHTML = '<div class="detail-empty">Open a session to view its details in a friendly summary table.</div>';
+    return;
+  }
+
+  const statusLabel = session.status === 'IN_PROGRESS' ? 'In Progress' : 'Completed';
+  const flag = session.final_flag || 'Pending';
+  const currentQuestion = session.current_question?.text || (session.status === 'COMPLETED' ? 'Completed' : 'Waiting');
+  const answers = session.answers || [];
+  const answerRows = answers.length
+    ? answers.map((answer, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escHtml(answer.question_text || answer.question_text_snapshot || answer.question || '')}</td>
+          <td>${escHtml(answer.selected_option_label || answer.option_label || answer.option_label_snapshot || answer.option || '')}</td>
+          <td>${escHtml(answer.option_flag_snapshot || '-')}</td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="4" class="muted">No answers recorded yet.</td></tr>';
+
+  el.innerHTML = `
+    <div class="detail-grid">
+      <div class="detail-field">
+        <div class="detail-field-label">Session</div>
+        <div class="detail-field-value">#${session.id}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-field-label">Patient</div>
+        <div class="detail-field-value">${escHtml(session.patient_name || 'Unknown')}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-field-label">Flow</div>
+        <div class="detail-field-value">${escHtml(session.flow_name || 'Triage Flow')}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-field-label">Status</div>
+        <div class="detail-field-value">${escHtml(statusLabel)}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-field-label">Current Question</div>
+        <div class="detail-field-value">${escHtml(currentQuestion)}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-field-label">Final Flag</div>
+        <div class="detail-field-value">${escHtml(flag)}</div>
+      </div>
+    </div>
+    <div class="detail-table-wrap">
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th style="width:64px;">#</th>
+            <th>Question</th>
+            <th>Answer</th>
+            <th style="width:110px;">Flag</th>
+          </tr>
+        </thead>
+        <tbody>${answerRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function clearSessionDetail() {
+  renderSessionDetail(null);
+}
+
+/* ─────────────────────────────────
+   SELECT OPTION
+───────────────────────────────── */
+function selectOption(el, optId, label) {
+  document.querySelectorAll('#q-options-list .q-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedOptionId    = optId;
+  selectedOptionLabel = label;
+}
+
+document.getElementById('q-options-list').addEventListener('click', event => {
+  const option = event.target.closest('.q-option');
+  if (!option) return;
+  selectOption(option, Number(option.dataset.id), option.dataset.label || '');
+});
+
+/* ─────────────────────────────────
+   SUBMIT ANSWER
+───────────────────────────────── */
+async function submitAnswer() {
+  if (!selectedOptionId) {
+    setStatus('Please select an option before submitting.', true); return;
+  }
+  if (!activeSession) {
+    setStatus('No active session. Start a session first.', true); return;
+  }
+
+  const btn = document.getElementById('q-submit-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  try {
+    const data = await request(
+      `/api/triage/sessions/${activeSession.id}/answer/`,
+      { method: 'POST', body: JSON.stringify({ option_id: selectedOptionId }) }
+    );
+    const session = data.session || data;
+    activeSession  = session;
+
+    renderSessionDetail(session);
+
+    if (session.status === 'COMPLETED') {
+      questionIndex++;
+      updateProgress(totalQuestions, totalQuestions);
+      setWizardStep(3);
+      showResult(session);
+      document.getElementById('q-idle').style.display = 'none';
+      document.getElementById('q-active').style.display = 'none';
+      document.getElementById('q-completed').style.display = 'flex';
+      setStatus('Session completed! Final flag: ' + session.final_flag);
+      await loadSessionsUI();
+      scrollToSection('result-card');
+    } else {
+      questionIndex++;
+      renderQuestion(session.current_question, questionIndex);
+      setStatus('Answer saved. Question ' + questionIndex + ' of ~' + totalQuestions + '.');
+    }
+  } catch(e) {
+    setStatus('Error submitting answer: ' + e.message, true);
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+/* ─────────────────────────────────
+   SHOW RESULT
+───────────────────────────────── */
+function showResult(session) {
+  const flag = session.final_flag || 'GREEN';
+  const msg  = session.final_message || 'Assessment complete.';
+
+  const conf = {
+    GREEN:  { emoji:'🟢', label:'Low Risk — Home Care', cls:'green' },
+    YELLOW: { emoji:'🟡', label:'Moderate Risk — See a Doctor', cls:'yellow' },
+    RED:    { emoji:'🔴', label:'High Risk — Urgent Care Needed', cls:'red' },
+  };
+  const c = conf[flag] || conf['GREEN'];
+
+  const answersHtml = (session.answers || []).map(a =>
+    `<div class="result-answer-row">
+       <div class="rar-q">${escHtml(a.question_text || a.question || '')}</div>
+       <div class="rar-a">${escHtml(a.selected_option_label || a.option_label || a.option || '')}</div>
+     </div>`
+  ).join('') || '<div class="result-answer-row"><div class="rar-q" style="color:var(--muted)">No answer history returned by API.</div></div>';
+
+  const rc = document.getElementById('result-card');
+  rc.className = 'result-card show slide-in';
+  rc.innerHTML = `
+    <div class="result-header ${c.cls}">
+      <div class="result-badge ${c.cls}">${c.emoji}</div>
+      <div>
+        <div class="result-flag ${c.cls}">${flag}</div>
+        <div class="result-title">${c.label}</div>
+      </div>
+    </div>
+    <div class="result-message ${c.cls === 'red' ? 'red' : c.cls === 'yellow' ? 'yellow' : ''}">
+      ${escHtml(msg)}
+    </div>
+    <div class="result-answers-title">Answer History</div>
+    ${answersHtml}
+    <div class="result-actions">
+      <button class="result-restart-btn" onclick="restartWizard()">🔄 New Session</button>
+      <button class="result-restart-btn" onclick="loadSessionsUI()">📋 Reload Sessions</button>
+    </div>
+  `;
+}
+
+/* ─────────────────────────────────
+   SESSIONS LIST UI
+───────────────────────────────── */
+async function loadSessionsUI() {
+  const status = document.getElementById('sessionStatus').value;
+  const path = status
+    ? `/api/triage/sessions/?status=${encodeURIComponent(status)}`
+    : '/api/triage/sessions/';
+
+  try {
+    const sessions = await request(path);
+    renderSessionsList(sessions);
+    return sessions;
+  } catch(e) {
+    setStatus('Could not load sessions: ' + e.message, true);
+  }
+}
+
+function renderSessionsList(sessions) {
+  const el = document.getElementById('sessionList');
+  if (!sessions || !sessions.length) {
+    el.innerHTML = '<div class="sessions-empty">No sessions found.</div>'; return;
+  }
+
+  const flagCls = { GREEN:'green', YELLOW:'yellow', RED:'red' };
+
+  el.innerHTML = sessions.map(s => {
+    const fc  = flagCls[s.final_flag] || 'none';
+    const sts = (s.status || '').toLowerCase().replace('_','-');
+    const stsLabel = s.status === 'IN_PROGRESS' ? 'In Progress' : 'Completed';
+    return `
+      <div class="session-row${activeSession && activeSession.id === s.id ? ' active-row':''}"
+           onclick="openSessionDetail(${s.id})">
+        <div class="sr-flag ${fc}"></div>
+        <div class="sr-body">
+          <div class="sr-name">#${s.id} ${escHtml(s.flow_name || 'Session')}</div>
+          <div class="sr-meta">${escHtml(s.patient_name || 'Unknown')} · ${s.answers ? s.answers.length : 0} answers</div>
+        </div>
+        <span class="sr-status-pill ${sts}">${stsLabel}</span>
+        <button class="sr-open-btn" onclick="event.stopPropagation();openSessionDetail(${s.id})">Open →</button>
+      </div>`;
+  }).join('');
+}
+
+async function openSessionDetail(id) {
+  try {
+    const session = await request(`/api/triage/sessions/${id}/`);
+    renderSessionDetail(session);
+
+    /* if session is in progress, load it into the question panel */
+    if (session.status === 'IN_PROGRESS') {
+      activeSession  = session;
+      questionIndex  = (session.answers || []).length + 1;
+      setWizardStep(2);
+      renderQuestion(session.current_question, questionIndex);
+      setStatus(`Opened session #${id} — answer question ${questionIndex} to continue.`);
+      scrollToSection('q-card');
+    } else if (session.status === 'COMPLETED') {
+      setWizardStep(3);
+      showResult(session);
+      document.getElementById('q-idle').style.display = 'none';
+      document.getElementById('q-active').style.display = 'none';
+      document.getElementById('q-completed').style.display = 'flex';
+      scrollToSection('result-card');
+      setStatus(`Session #${id} completed — ${session.final_flag}`);
+    }
+  } catch(e) {
+    setStatus('Could not load session: ' + e.message, true);
+  }
+}
+
+/* ─────────────────────────────────
+   SCROLL HELPER
+───────────────────────────────── */
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+/* ─────────────────────────────────
+   OVERRIDE hc-core renderCurrentQuestion
+   so our custom UI is used instead
+───────────────────────────────── */
+window.renderCurrentQuestion = function(session) {
+  if (!session) return;
+  activeSession = session;
+  renderSessionDetail(session);
+  if (session.status === 'COMPLETED') {
+    setWizardStep(3);
+    showResult(session);
+    document.getElementById('q-idle').style.display = 'none';
+    document.getElementById('q-active').style.display = 'none';
+    document.getElementById('q-completed').style.display = 'flex';
+  } else if (session.current_question) {
+    questionIndex = (session.answers||[]).length + 1;
+    setWizardStep(2);
+    renderQuestion(session.current_question, questionIndex);
+  }
+};
+
+/* ─────────────────────────────────
+   WIRE UP SIDEBAR + CORE BUTTONS
+───────────────────────────────── */
+document.getElementById('loadEverything').addEventListener('click', async () => {
+  await initializeTriagePage();
+});
+
+document.getElementById('sampleFlow').addEventListener('click', async () => {
+  try {
+    await createSampleFlow();
+    fillTriageFlowSelect(state.flows || []);
+    fillMemberSelect(state.members || []);
+    setStatus('Sample flow created. Select it and start a triage session.');
+  } catch(e) {
+    setStatus(e.message, true);
+  }
+});
+
+document.getElementById('sessionStatus').addEventListener('change', loadSessionsUI);
+
+async function initializeTriagePage() {
+  setStatus('Loading triage data...');
+  const canUseSession = await bootstrapSessionToken();
+  if (!state.access && !canUseSession) {
+    setStatus('Login with a staff/admin account first.', true);
+    return;
+  }
+
+  try {
+    const [flowsResult, membersResult] = await Promise.allSettled([
+      loadFlows(),
+      loadMembers(),
+    ]);
+    if (flowsResult.status === 'rejected') throw flowsResult.reason;
+    if (membersResult.status === 'rejected') state.members = [];
+
+    fillTriageFlowSelect(state.flows || []);
+    fillMemberSelect(state.members || []);
+    await loadSessionsUI();
+    setStatus('Triage data loaded. Select a flow and start a session.');
+  } catch(error) {
+    setStatus(error.message || 'Could not load triage data.', true);
+  }
+}
+
+/* ─────────────────────────────────
+   AUTO INIT
+───────────────────────────────── */
+initializeTriagePage();
+</script>
+</body>
+</html>

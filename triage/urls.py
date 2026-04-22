@@ -1,4 +1,6 @@
 from django.urls import path
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from .views import (
     TriageFlowDetailView,
@@ -15,7 +17,23 @@ from .views import (
     TriageSessionStartView,
 )
 
+
+@api_view(['GET'])
+def triage_api_root(request):
+    return Response(
+        {
+            'flows': request.build_absolute_uri('/api/triage/flows/'),
+            'questions': request.build_absolute_uri('/api/triage/questions/'),
+            'options': request.build_absolute_uri('/api/triage/options/'),
+            'transitions': request.build_absolute_uri('/api/triage/transitions/'),
+            'sessions': request.build_absolute_uri('/api/triage/sessions/'),
+            'start_session': request.build_absolute_uri('/api/triage/sessions/start/'),
+        }
+    )
+
+
 urlpatterns = [
+    path('', triage_api_root, name='triage-api-root'),
     path('flows/', TriageFlowView.as_view(), name='triage-flows'),
     path('flows/<int:flow_id>/', TriageFlowDetailView.as_view(), name='triage-flow-detail'),
     path('questions/', TriageQuestionView.as_view(), name='triage-questions'),

@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="settings">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Evaryahealth Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Settings</h1>
+      <p>Platform configuration</p>
+    </div>
+  </div>
+
+  <div class="card fade-in-2" style="max-width:580px;">
+    <div class="card-header"><h3>⚙️ Platform Settings</h3></div>
+    <div class="card-body">
+      <div class="form-group"><label>Platform Name</label><input type="text" value="Evaryahealth"></div>
+      <div class="form-group"><label>Support Email</label><input type="email" value="support@evaryahealth.com"></div>
+      <div class="form-group"><label>Emergency Hotline</label><input type="tel" value="112"></div>
+      <div class="form-group"><label>Default Call Duration (minutes)</label><input type="number" value="15"></div>
+      <button class="btn-primary" onclick="alert('Settings saved!')">Save Settings</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

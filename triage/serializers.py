@@ -141,6 +141,9 @@ class TriageQuestionCardSerializer(serializers.ModelSerializer):
 class TriageSessionAnswerSerializer(serializers.ModelSerializer):
     question_code = serializers.CharField(source='question.code', read_only=True)
     option_code = serializers.CharField(source='option.code', read_only=True)
+    question_text = serializers.CharField(source='question_text_snapshot', read_only=True)
+    option_label = serializers.CharField(source='option_label_snapshot', read_only=True)
+    selected_option_label = serializers.CharField(source='option_label_snapshot', read_only=True)
 
     class Meta:
         model = TriageSessionAnswer
@@ -149,9 +152,12 @@ class TriageSessionAnswerSerializer(serializers.ModelSerializer):
             'answer_order',
             'question',
             'question_code',
+            'question_text',
             'question_text_snapshot',
             'option',
             'option_code',
+            'option_label',
+            'selected_option_label',
             'option_label_snapshot',
             'option_flag_snapshot',
             'answered_at',

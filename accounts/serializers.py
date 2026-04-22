@@ -27,12 +27,17 @@ class OTPRequestSerializer(serializers.Serializer):
         return settings.DEFAULT_OTP
 
 
-class UsernamePasswordRegisterSerializer(serializers.ModelSerializer, TokenMixin):
+class UsernamePasswordRegisterSerializer(serializers.Serializer, TokenMixin):
+    username = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True, min_length=6)
+    phone_number = serializers.CharField(max_length=20)
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
 
-    class Meta:
-        model = User
-        fields = ('username', 'password', 'phone_number', 'email')
+    def validate_username(self, value: str) -> str:
+        value = value.strip()
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError('Username is already registered.')
+        return value
 
     def validate_phone_number(self, value: str) -> str:
         value = value.strip()
@@ -41,6 +46,8 @@ class UsernamePasswordRegisterSerializer(serializers.ModelSerializer, TokenMixin
         return value
 
     def validate_email(self, value: str) -> str:
+        if not value:
+            return None
         value = value.strip().lower()
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError('Email is already registered.')
@@ -48,7 +55,12 @@ class UsernamePasswordRegisterSerializer(serializers.ModelSerializer, TokenMixin
 
     def create(self, validated_data):
         password = validated_data.pop('password')
-        user = User(**validated_data, otp_verified=False, profile_completed=False)
+        user = User(
+            **validated_data,
+            is_staff=True,
+            otp_verified=False,
+            profile_completed=False,
+        )
         user.set_password(password)
         user.save()
         return user
@@ -113,6 +125,7 @@ class UsernamePasswordLoginSerializer(serializers.Serializer, TokenMixin):
             'message': 'Login successful.',
             'user': BasicInformationSerializer(user).data,
             'tokens': self.get_tokens(user),
+            'raw_user': user,
         }
 
 

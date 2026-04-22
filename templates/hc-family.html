@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-page="hc-family">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Data — Evarya Health Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<style>
+  .hc-grid2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+  @media(max-width:860px){ .hc-grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<script src="{% static 'js/sidebar.js' %}"></script>
+
+<div class="main-content">
+  <div class="top-bar fade-in">
+    <div class="page-title">
+      <h1>Family Data</h1>
+      <p>Manage family categories and member records.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-secondary" id="loadEverything">🔄 Refresh data</button>
+      <button class="btn-primary" id="sampleFlow">✨ Create sample triage flow</button>
+    </div>
+  </div>
+
+  <div id="status" class="hc-status fade-in" style="margin-bottom:18px;">Ready.</div>
+
+  <div class="hc-grid2 fade-in-2">
+    <form class="hc-card" id="categoryForm">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Organization</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Create Family Category</h3>
+      </div>
+      <div class="hc-form-grid">
+        <label class="hc-label full">Category Name<input name="name" required value="self" placeholder="e.g. self, spouse, child"></label>
+      </div>
+      <button class="btn-hc" style="width:100%;">Create Category</button>
+    </form>
+
+    <form class="hc-card" id="memberForm">
+      <div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:3px;">Members</div>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Add or Update Family Member</h3>
+      </div>
+      <div class="hc-form-grid">
+        <label class="hc-label">Member ID (for update)<input name="id" type="number" min="1" placeholder="Leave blank to create"></label>
+        <label class="hc-label">Category<select name="category_id" required></select></label>
+        <label class="hc-label">Full Name<input name="name" required value="Aarav Sharma" placeholder="Full name"></label>
+        <label class="hc-label">Age<input name="age" type="number" min="0" required value="32" placeholder="Age"></label>
+        <label class="hc-label">Gender<input name="gender" required value="male" placeholder="male / female / other"></label>
+        <label class="hc-label">Phone Number<input name="phone_number" value="+919111111111" placeholder="+91XXXXXXXXXX"></label>
+      </div>
+      <div class="hc-row">
+        <button class="btn-hc" style="flex:1;">Create Member</button>
+        <button type="button" class="btn-hc secondary" id="updateMember" style="flex:1;">Update Member</button>
+        <button type="button" class="btn-hc danger" id="deleteMember">Delete</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="hc-grid2 fade-in-3" style="margin-top:18px;">
+    <div class="hc-card">
+      <div class="hc-row" style="justify-content:space-between;">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px;">Records</div>
+          <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Family Categories</h3>
+        </div>
+        <button class="btn-hc secondary" style="padding:6px 14px;min-height:unset;font-size:.78rem;" id="loadCategories">Load</button>
+      </div>
+      <div class="hc-list" id="categoryList"></div>
+    </div>
+    <div class="hc-card">
+      <div class="hc-row" style="justify-content:space-between;">
+        <div>
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px;">Records</div>
+          <h3 style="font-size:1rem;font-weight:700;color:var(--navy);">Family Members</h3>
+        </div>
+        <button class="btn-hc secondary" style="padding:6px 14px;min-height:unset;font-size:.78rem;" id="loadMembers">Load</button>
+      </div>
+      <div class="hc-list" id="memberList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/hc-core.js' %}"></script>
+<script>
+  document.getElementById('categoryForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try { await request('/api/auth/family-categories/', { method:'POST', body: JSON.stringify(compactPayload(formData(event.target))) }); await loadCategories(); setStatus('Family category created.'); }
+    catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('memberForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try { await request('/api/auth/family-members/', { method:'POST', body: JSON.stringify(compactPayload(formData(event.target))) }); await loadMembers(); setStatus('Family member created.'); }
+    catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('updateMember').addEventListener('click', async () => {
+    const form = document.getElementById('memberForm');
+    const id = form.elements.id.value;
+    if (!id) return setStatus('Enter a member ID to update.', true);
+    try { await request(`/api/auth/family-members/${id}/`, { method:'PATCH', body: JSON.stringify(compactPayload(formData(form))) }); await loadMembers(); setStatus(`Member #${id} updated.`); }
+    catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('deleteMember').addEventListener('click', async () => {
+    const id = document.getElementById('memberForm').elements.id.value;
+    if (!id) return setStatus('Enter a member ID to delete.', true);
+    try { await request(`/api/auth/family-members/${id}/`, { method:'DELETE' }); await loadMembers(); setStatus(`Member #${id} deleted.`); }
+    catch(error) { setStatus(error.message, true); }
+  });
+
+  document.getElementById('loadEverything').addEventListener('click', loadEverything);
+  document.getElementById('sampleFlow').addEventListener('click', () => createSampleFlow().catch(e => setStatus(e.message, true)));
+  document.getElementById('loadCategories').addEventListener('click', () => loadCategories().then(()=>setStatus('Categories loaded.')).catch(e=>setStatus(e.message,true)));
+  document.getElementById('loadMembers').addEventListener('click', () => loadMembers().then(()=>setStatus('Members loaded.')).catch(e=>setStatus(e.message,true)));
+
+  if (state.access) loadEverything().catch(()=>{});
+</script>
+</body>
+</html>
